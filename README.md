@@ -24,6 +24,23 @@ handle environment-specific configurations.
 - **Environment File Generation**: Enables generating .env files for specific
   versions and groups using commands.
 
+## Installation
+
+TBD
+
+## Usage
+
+Below are the initial subcommands for `envers`:
+
+- `envers init`: Initialize the `envers` environment.
+- `envers spec create`: Create a new spec.
+- `envers spec update`: Update an existing spec.
+- `envers spec remove`: Remove an existing spec.
+- `envers content add`: Add new content.
+- `envers content update`: Update existing content.
+- `envers content remove`: Remove existing content.
+- `envers generate`: Generate environment files based on specified version and group.
+
 Using these commands it will end-up creating a file locate at `./.envers/.envers.yaml`.
 This file would look like this:
 
@@ -55,22 +72,7 @@ release:
 
 ```
 
-## Installation
-
-TBD
-
-## Usage
-
-Below are the initial subcommands for `envers`:
-
-- `envers init`: Initialize the `envers` environment.
-- `envers spec create`: Create a new spec.
-- `envers spec update`: Update an existing spec.
-- `envers spec remove`: Remove an existing spec.
-- `envers content add`: Add new content.
-- `envers content update`: Update existing content.
-- `envers content remove`: Remove existing content.
-- `envers generate`: Generate environment files based on specified version and group.
+The `.envers/.envers.yaml` is an auto-generated file, so it will not be changed manually.
 
 ### Examples
 
