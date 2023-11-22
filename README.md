@@ -24,6 +24,37 @@ handle environment-specific configurations.
 - **Environment File Generation**: Enables generating .env files for specific
   versions and groups using commands.
 
+Using these commands it will end-up creating a file locate at `./.envers/.envers.yaml`.
+This file would look like this:
+
+```yaml
+version: 0.1  # the spec version
+release:
+  0.1.0:  # a version for the environment variables
+    docs: message about the new version
+    spec:  # define the spec for that version, this spec should be used for all the groups inside this version
+      files:  # define the env file or any other kind of environment file to be used, for now it just has support for .env files
+        ./.env:
+          type: dotenv
+          vars:
+            MY_FIRST_VAR:
+              type: string
+              default: blabla  # in the case that the variable is not defined
+              encrypted: false  # this parameter is optional, by default it is false
+            MY_SECOND_VAR:
+              type: string
+              encrypted: true
+    groups:
+      prod: # just a name of a random group name
+        ./.env:
+          MY_FIRST_VAR: Oki
+          MY_SECOND_VAR: |
+            OIJWIEJFQIEWFJQWIJFSDFJPASDJFLKAJSDLFJALPSDJFKAJSDPFLKJQ0J0J3
+            ASDOIFASDIJFJASDAFJASJDFJASDIJFJ́ASDOFIJADSIJFOIPJASDFJSADJFPOIJA
+            DSFKAJDFKJLADSJFLKJASDFJASDJFLKASDLKFJALKSDJFPLJASDLKFJLKAD
+
+```
+
 ## Installation
 
 TBD
