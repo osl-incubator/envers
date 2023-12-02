@@ -14,32 +14,31 @@ exclude = [
 include = ["src/envers/py.typed"]
 
 [tool.poetry.dependencies]
-python = "^3.8.1"
+python = ">=3.8.1,<3.12"
+typer = ">=0.9.0"
 
 [tool.poetry.dev-dependencies]
-urllib3 = "<2"  # fix poetry issues
-pytest = "^7.3.2"
-pytest-cov = "^4.1.0"
-coverage = "^7.2.7"
-pre-commit = "^3.3.2"
-ruff = "^0.0.278"
-mypy = "^1.3.0"
-bandit = "^1.7.5"
-vulture = "^2.7"
-mccabe = "^0.6.1"
-ipython = "<8"
+pytest = ">=7.3.2"
+pytest-cov = ">=4.1.0"
+coverage = ">=7.2.7"
+pre-commit = ">=3.3.2"
+ruff = ">=0.1.5"
+mypy = ">=1.6.0"
+bandit = ">=1.7.5"
+vulture = ">=2.7"
+mccabe = ">=0.6.1"
+ipython = ">=8"
 ipykernel = ">=6.0.0"
-Jinja2 = "^3.1.2"
-mkdocs = "^1.4.3"
-mkdocs-exclude = "^1.0.2"
-mkdocs-jupyter = "^0.24.1"
-mkdocs-literate-nav = "^0.6.0"
+Jinja2 = ">=3.1.2"
+mkdocs = ">=1.4.3"
+mkdocs-exclude = ">=1.0.2"
+mkdocs-jupyter = ">=0.24.1"
+mkdocs-literate-nav = ">=0.6.0"
 mkdocs-macros-plugin = ">=0.7.0,<1"
-mkdocs-material = "^9.1.15"
-mkdocstrings = "^0.21.2"
-mkdocstrings-python = "^1.1.2"
-makim ="^1.8.3"
-
+mkdocs-material = ">=9.1.15"
+mkdocstrings = ">=0.21.2"
+mkdocstrings-python = ">=1.1.2"
+makim =">=1.8.3"
 
 
 [tool.pytest.ini_options]
