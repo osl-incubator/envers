@@ -1,21 +1,16 @@
 """Envers class for containers."""
 from __future__ import annotations
+
 import copy
-import io
 import os
-import sys
 
 from pathlib import Path
+from typing import Any
 
-import sh
 import typer
 import yaml  # type: ignore
 
 from dotenv import dotenv_values
-from jinja2 import Template
-
-from envers import __version__
-from envers.logs import EnversErrorType, EnversLogs
 
 # constants
 ENVERS_SPEC_FILENAME = "specs.yaml"
@@ -36,14 +31,17 @@ class Envers:
 
     def init(self, path: Path) -> None:
         """
-        Initialize the envers environment at the given path. This includes creating a .envers folder
-        and a spec.yaml file within it with default content.
+        Initialize Envers instance.
+
+        Initialize the envers environment at the given path. This includes
+        creating a .envers folder and a spec.yaml file within it with default
+        content.
 
         Parameters
         ----------
         path : str, optional
-            The directory path where the envers environment will be initialized.
-            Defaults to the current directory (".").
+            The directory path where the envers environment will be
+            initialized. Defaults to the current directory (".").
 
         Returns
         -------
@@ -95,7 +93,8 @@ class Envers:
 
         if specs.get("releases", {}).get("version", ""):
             typer.echo(
-                f"The given version {version} is already defined in the specs.yaml file."
+                f"The given version {version} is already defined in the "
+                "specs.yaml file."
             )
             return
 
@@ -143,7 +142,7 @@ class Envers:
         with open(spec_file, "w") as file:
             yaml.dump(specs, file, sort_keys=False)
 
-    def deploy(self, version: str):
+    def deploy(self, version: str) -> None:
         """
         Deploy a specific version, updating the .envers/data.lock file.
 
@@ -179,7 +178,7 @@ class Envers:
 
         # Populate data with default values
         for profile_name in spec.get("profiles", []):
-            profile_data = {"files": {}}
+            profile_data: dict["str", dict[str, Any]] = {"files": {}}
             for file_path, file_info in (
                 spec.get("spec", {}).get("files", {}).items()
             ):

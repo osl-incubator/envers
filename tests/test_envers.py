@@ -2,6 +2,6 @@
 import envers
 
 
-def test_content_pytest():
+def test_envers():
     """Test with pytest."""
-    assert True
+    assert envers
