@@ -58,7 +58,7 @@ class Envers:
 
         # Create and write the default content to spec.yaml
         with open(spec_file, "w") as file:
-            file.write("version: 0.1\nrelease:\n")
+            file.write("version: 0.1\nreleases:\n")
 
     def draft(
         self, version: str, from_version: str = "", from_env: str = ""
@@ -111,7 +111,7 @@ class Envers:
         else:
             specs["releases"][version] = {
                 "status": "draft",
-                "help": "",
+                "docs": "",
                 "profiles": ["base"],
                 "spec": {"files": {}},
             }
@@ -171,10 +171,15 @@ class Envers:
 
         spec = specs["releases"][version]
 
-        data_lock = {
-            "version": specs["version"],
-            "releases": {version: {"spec": spec, "data": {}}},
-        }
+        if data_lock_file.exists():
+            with open(data_lock_file, "r") as file:
+                data_lock = yaml.safe_load(file) or {}
+            data_lock["releases"][version] = {"spec": spec, "data": {}}
+        else:
+            data_lock = {
+                "version": specs["version"],
+                "releases": {version: {"spec": spec, "data": {}}},
+            }
 
         # Populate data with default values
         for profile_name in spec.get("profiles", []):
@@ -192,5 +197,62 @@ class Envers:
                 profile_data["files"][file_path] = file_data
             data_lock["releases"][version]["data"][profile_name] = profile_data
 
+        with open(data_lock_file, "w") as file:
+            yaml.dump(data_lock, file, sort_keys=False)
+
+    def profile_set(self, profile: str, spec: str) -> None:
+        """
+        Set the profile values for a given spec version.
+
+        Parameters
+        ----------
+        profile : str
+            The name of the profile to set values for.
+        spec : str
+            The version of the spec to use.
+
+        Returns
+        -------
+        None
+        """
+        data_lock_file = Path(".envers") / "data.lock"
+
+        if not data_lock_file.exists():
+            typer.echo(
+                "Data lock file not found. Please deploy a version first."
+            )
+            raise typer.Exit()
+
+        with open(data_lock_file, "r") as file:
+            data_lock = yaml.safe_load(file) or {}
+
+        if not data_lock.get("releases", {}).get(spec, ""):
+            typer.echo(f"Version {spec} not found in data.lock.")
+            raise typer.Exit()
+
+        release_data = data_lock["releases"][spec]
+        spec_data = release_data.get("spec", {})
+        profile_data = release_data.get("data", {}).get(profile, {"files": {}})
+
+        # Iterate over files and variables
+        for file_path, file_info in spec_data.get("files", {}).items():
+            for var_name, var_info in file_info.get("vars", {}).items():
+                current_value = (
+                    profile_data.get("files", {})
+                    .get(file_path, {})
+                    .get("vars", {})
+                    .get(var_name, var_info.get("default", ""))
+                )
+                new_value = typer.prompt(
+                    f"Enter value for {var_name} in {file_path} "
+                    f"(Profile: {profile})",
+                    default=current_value,
+                )
+                if not profile_data.get("files", {}).get(file_path, {}):
+                    profile_data["files"][file_path] = {"vars": {}}
+                profile_data["files"][file_path]["vars"][var_name] = new_value
+
+        # Update data.lock file
+        data_lock["releases"][spec]["data"][profile] = profile_data
         with open(data_lock_file, "w") as file:
             yaml.dump(data_lock, file, sort_keys=False)

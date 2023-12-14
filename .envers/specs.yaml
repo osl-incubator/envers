@@ -2,7 +2,7 @@ version: 0.1
 releases:
   '1.0':
     status: draft
-    help: ''
+    docs: ''
     profiles:
     - base
     spec:
@@ -21,4 +21,30 @@ releases:
             VERSION:
               type: string
               default: '1.0'
+              encrypted: false
+  '2.0':
+    status: draft
+    docs: ''
+    profiles:
+    - base
+    spec:
+      files:
+        .env:
+          type: dotenv
+          vars:
+            ENV:
+              type: string
+              default: dev
+              encrypted: false
+            PROJECT_NAME:
+              type: string
+              default: envers
+              encrypted: false
+            VERSION:
+              type: string
+              default: '1.0'
+              encrypted: false
+            USE_CONTAINER:
+              type: bool
+              default: true
               encrypted: false

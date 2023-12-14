@@ -5,6 +5,8 @@ from pathlib import Path
 
 import typer
 
+from typing_extensions import Annotated
+
 from envers.core import Envers
 
 app = typer.Typer()
@@ -48,9 +50,30 @@ def draft(version: str, from_version: str = "", from_env: str = "") -> None:
 
 
 @app.command()
-def profile_set(profile_name: str, spec_version: str) -> None:
-    """Add new content to a profile."""
-    print(profile_name, spec_version)
+def profile_set(
+    profile: Annotated[
+        str, typer.Option(help="The name of the profile to set values for.")
+    ] = "",
+    spec: Annotated[
+        str, typer.Option(help="The version of the spec to use.")
+    ] = "",
+) -> None:
+    """
+    Set the profile values for a given spec version.
+
+    Parameters
+    ----------
+    profile : str
+        The name of the profile to set values for.
+    spec : str
+        The version of the spec to use.
+
+    Returns
+    -------
+    None
+    """
+    envers = Envers()
+    envers.profile_set(profile, spec)
 
 
 @app.command()
