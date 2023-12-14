@@ -77,15 +77,17 @@ def profile_set(
 
 
 @app.command()
-def profile_update(profile_name: str, spec_version: str) -> None:
-    """Update existing content of a profile."""
-    print(profile_name, spec_version)
-
-
-@app.command()
-def profile_load(profile: str, spec: str) -> None:
+def profile_load(
+    profile: Annotated[
+        str, typer.Option(help="The name of the profile to set values for.")
+    ] = "",
+    spec: Annotated[
+        str, typer.Option(help="The version of the spec to use.")
+    ] = "",
+) -> None:
     """Load a specific environment profile to files."""
-    print(profile, spec)
+    envers = Envers()
+    envers.profile_load(profile, spec)
 
 
 @app.command()

@@ -39,10 +39,8 @@ Below are the initial subcommands for `envers`:
   Create a new version draft in the spec file. Some variants of this command:
   - `envers draft <spec version number> --from <previous spec version number>`
   - `envers draft <spec version number> --from-env .env`
-- `envers profile set --profile <profile_name> --spec <version_number>`:
+- `envers profile-set --profile <profile_name> --spec <version_number>`:
   Add new content.
-- `envers profile update --profile <profile_name> --spec <version_number>`:
-  Update existing content.
 - `envers profile load --profile prod --spec <spec version>`:
   Load a specific environment profile to files
 - `envers profile versions --profile <profile_name> --spec <spec version>`:

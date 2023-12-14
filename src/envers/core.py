@@ -156,7 +156,7 @@ class Envers:
         None
         """
         specs_file = Path(".envers") / ENVERS_SPEC_FILENAME
-        data_lock_file = Path(".envers") / "data.lock"
+        data_file = Path(".envers") / "data.lock"
 
         if not specs_file.exists():
             typer.echo("Spec file not found. Please initialize envers first.")
@@ -169,11 +169,21 @@ class Envers:
             typer.echo(f"Version {version} not found in specs.yaml.")
             raise typer.Exit()
 
-        spec = specs["releases"][version]
+        spec = copy.deepcopy(specs["releases"][version])
 
-        if data_lock_file.exists():
-            with open(data_lock_file, "r") as file:
+        # all data in the data.lock file are deployed
+        del spec["status"]
+
+        if data_file.exists():
+            with open(data_file, "r") as file:
                 data_lock = yaml.safe_load(file) or {}
+
+            if not data_lock:
+                typer.echo("data.lock is not valid. Creating a new file.")
+                data_lock = {
+                    "version": specs["version"],
+                    "releases": {},
+                }
             data_lock["releases"][version] = {"spec": spec, "data": {}}
         else:
             data_lock = {
@@ -197,8 +207,12 @@ class Envers:
                 profile_data["files"][file_path] = file_data
             data_lock["releases"][version]["data"][profile_name] = profile_data
 
-        with open(data_lock_file, "w") as file:
+        with open(data_file, "w") as file:
             yaml.dump(data_lock, file, sort_keys=False)
+
+        with open(specs_file, "w") as file:
+            specs["releases"][version]["status"] = "deployed"
+            yaml.dump(specs, file, sort_keys=False)
 
     def profile_set(self, profile: str, spec: str) -> None:
         """
@@ -208,6 +222,68 @@ class Envers:
         ----------
         profile : str
             The name of the profile to set values for.
+        spec : str
+            The version of the spec to use.
+
+        Returns
+        -------
+        None
+        """
+        data_file = Path(".envers") / "data.lock"
+
+        if not data_file.exists():
+            typer.echo(
+                "Data lock file not found. Please deploy a version first."
+            )
+            raise typer.Exit()
+
+        with open(data_file, "r") as file:
+            data_lock = yaml.safe_load(file) or {}
+
+        if not data_lock.get("releases", {}).get(spec, ""):
+            typer.echo(f"Version {spec} not found in data.lock.")
+            raise typer.Exit()
+
+        release_data = data_lock["releases"][spec]
+        profile_data = release_data.get("data", {}).get(profile, {})
+
+        if not (profile_data and profile_data.get("files", {})):
+            typer.echo(
+                f"There is no data spec for version '{spec}' "
+                f"and profile '{profile}'"
+            )
+            raise typer.Exit()
+
+        # Iterate over files and variables
+        profile_title = f"Profile: {profile}"
+        typer.echo(f"{profile_title}\n{'=' * len(profile_title)}")
+        for file_path, file_info in profile_data.get("files", {}).items():
+            file_title = f"File: {file_path}"
+            typer.echo(f"{file_title}\n{'-' * len(file_title)}")
+            for var_name, var_info in file_info.get("vars", {}).items():
+                current_value = var_info
+                new_value = typer.prompt(
+                    f"Enter value for `{var_name}`",
+                    default=current_value,
+                )
+                profile_data["files"][file_path]["vars"][var_name] = new_value
+
+        # Update data.lock file
+        data_lock["releases"][spec]["data"][profile] = profile_data
+        with open(data_file, "w") as file:
+            yaml.dump(data_lock, file, sort_keys=False)
+
+    def profile_load(self, profile: str, spec: str) -> None:
+        """
+        Load a specific environment profile to files.
+
+        Load a specific environment profile to files based on the given
+        spec version.
+
+        Parameters
+        ----------
+        profile : str
+            The name of the profile to load.
         spec : str
             The version of the spec to use.
 
@@ -231,28 +307,19 @@ class Envers:
             raise typer.Exit()
 
         release_data = data_lock["releases"][spec]
-        spec_data = release_data.get("spec", {})
         profile_data = release_data.get("data", {}).get(profile, {"files": {}})
 
         # Iterate over files and variables
-        for file_path, file_info in spec_data.get("files", {}).items():
-            for var_name, var_info in file_info.get("vars", {}).items():
-                current_value = (
-                    profile_data.get("files", {})
-                    .get(file_path, {})
-                    .get("vars", {})
-                    .get(var_name, var_info.get("default", ""))
-                )
-                new_value = typer.prompt(
-                    f"Enter value for {var_name} in {file_path} "
-                    f"(Profile: {profile})",
-                    default=current_value,
-                )
-                if not profile_data.get("files", {}).get(file_path, {}):
-                    profile_data["files"][file_path] = {"vars": {}}
-                profile_data["files"][file_path]["vars"][var_name] = new_value
+        for file_path, file_info in profile_data.get("files", {}).items():
+            file_content = ""
+            for var_name, var_value in file_info.get("vars", {}).items():
+                file_content += f"{var_name}={var_value}\n"
 
-        # Update data.lock file
-        data_lock["releases"][spec]["data"][profile] = profile_data
-        with open(data_lock_file, "w") as file:
-            yaml.dump(data_lock, file, sort_keys=False)
+            # Create or update the file
+            with open(file_path, "w") as file:
+                file.write(file_content)
+
+        typer.echo(
+            f"Environment files for profile '{profile}' and spec version "
+            f"'{spec}' have been created/updated."
+        )

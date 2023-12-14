@@ -1,7 +1,7 @@
 version: 0.1
 releases:
   '1.0':
-    status: draft
+    status: deployed
     docs: ''
     profiles:
     - base
@@ -23,7 +23,7 @@ releases:
               default: '1.0'
               encrypted: false
   '2.0':
-    status: draft
+    status: deployed
     docs: ''
     profiles:
     - base
