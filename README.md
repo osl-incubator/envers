@@ -50,7 +50,7 @@ Below are the initial subcommands for `envers`:
   specific spec version
 
 > Note: In some cases, `--spec <spec version>` in the command line is
-> can be ommitted, and the latest spec version will be used.
+> can be omitted, and the latest spec version will be used.
 
 
 `envers init` creates some files:
@@ -66,7 +66,7 @@ The initial version of `./.envers/.specs.yaml` would look like this:
 
 ```yaml
 version: 0.1 # the envers spec version
-release:
+releases:
 ```
 
 As you can see, it doesn't have too much information.
@@ -80,7 +80,7 @@ After this command, the `.envers/specs.yaml` file should look like this:
 
 ```yaml
 version: 0.1 # the spec version
-release:
+releases:
   # placeholder: the version for the environment variables.
   #   if the status is draft, feel free to change the version number
   1.0:

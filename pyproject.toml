@@ -13,9 +13,18 @@ exclude = [
 ]
 include = ["src/envers/py.typed"]
 
+
+[tool.poetry.scripts]
+"envers" = "envers.__main__:app"
+
 [tool.poetry.dependencies]
 python = ">=3.8.1,<3.12"
-typer = ">=0.9.0"
+typer = {extras = ["all"], version = ">=0.9.0"}
+typing-extensions = ">=4.9.0"
+jinja2 = ">=2"
+python-dotenv = ">=1.0"
+pyyaml = ">=5.0"
+
 
 [tool.poetry.dev-dependencies]
 pytest = ">=7.3.2"

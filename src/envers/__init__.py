@@ -9,11 +9,11 @@ def get_version() -> str:
     try:
         return importlib_metadata.version(__name__)
     except importlib_metadata.PackageNotFoundError:  # pragma: no cover
-        return '0.1.0'  # semantic-release
+        return "0.1.0"  # semantic-release
 
 
 version = get_version()
 
 __version__ = version
-__author__ = 'Ivan Ogasawara'
-__email__ = 'ivan.ogasawara@gmail.com'
+__author__ = "Ivan Ogasawara"
+__email__ = "ivan.ogasawara@gmail.com"
