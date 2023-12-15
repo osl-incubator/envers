@@ -37,6 +37,7 @@ groups:
   tests:
     env:
       TEST_TMP: /tmp/envers
+      ENVERS_PASS: ASDF1234
 
     targets:
       linter:
@@ -82,20 +83,37 @@ groups:
       smoke-draft:
         help: "Smoke test for envers draft"
         shell: bash
+        dependencies:
+          - target: tests.smoke-init
         run: |
           export CURRENT_PATH="$(pwd)"
           export TEST_DATA="${CURRENT_PATH}/tests/data"
           export TEST_TMP="{{ env.TEST_TMP }}"
           cd "${TEST_TMP}"
           envers init
-          envers draft 1.0
-          envers draft 2.0
+          echo "ENV=dev" > .env
+          envers draft 1.0 --from-env .env
+          envers draft 2.0 --from-version 1.0
+
+      smoke-deploy:
+        help: "Smoke test for envers draft"
+        shell: bash
+        dependencies:
+          - target: tests.smoke-draft
+        run: |
+          export CURRENT_PATH="$(pwd)"
+          export TEST_DATA="${CURRENT_PATH}/tests/data"
+          export TEST_TMP="{{ env.TEST_TMP }}"
+          cd "${TEST_TMP}"
+          echo "{{ env.ENVERS_PASS }}" | envers deploy 1.0
+          echo "{{ env.ENVERS_PASS }}" | envers deploy 2.0
 
       smoke:
         help: "Smoke tests"
         dependencies:
           - target: tests.smoke-init
           - target: tests.smoke-draft
+          - target: tests.smoke-deploy
 
       ci:
         help: run the sames tests executed on CI
