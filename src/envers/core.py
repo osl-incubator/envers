@@ -165,7 +165,6 @@ class Envers:
                         var: {
                             "type": "string",
                             "default": value,
-                            "encrypted": False,
                         }
                         for var, value in env_vars.items()
                     },
