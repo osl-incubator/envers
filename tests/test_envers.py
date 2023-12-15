@@ -1,13 +1,7 @@
 """Tests for envers package."""
-import pytest
+import envers
 
 
-@pytest.fixture
-def response_pytest():
-    """Sample pytest fixture."""
-    return True
-
-
-def test_content_pytest():
+def test_envers():
     """Test with pytest."""
-    assert True
+    assert envers

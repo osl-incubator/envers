@@ -35,6 +35,10 @@ jobs:
       run: |
         makim tests.unit
 
+    - name: Run smoke tests
+      run: |
+        makim tests.smoke
+
     - name: Run style checks
       run: |
         pre-commit install
