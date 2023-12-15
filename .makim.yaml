@@ -56,10 +56,44 @@ groups:
         run: |
           pytest {{ args.path }} {{ args.params }}
 
+      smoke-init:
+        help: "Smoke test for envers init"
+        shell: bash
+        run: |
+          export CURRENT_PATH="$(pwd)"
+          export TEST_DATA="${CURRENT_PATH}/tests/data"
+          export TEST_TMP=/tmp/envers
+          rm -rf "${TEST_TMP}"
+          mkdir -p "${TEST_TMP}"
+          cd "${TEST_TMP}"
+          envers init
+          test -f "${TEST_TMP}/.envers/specs.yaml"
+
+      smoke-draft:
+        help: "Smoke test for envers draft"
+        shell: bash
+        run: |
+          export CURRENT_PATH="$(pwd)"
+          export TEST_DATA="${CURRENT_PATH}/tests/data"
+          export TEST_TMP=/tmp/envers
+          rm -rf "${TEST_TMP}"
+          mkdir -p "${TEST_TMP}"
+          cd "${TEST_TMP}"
+          envers init
+          envers draft 1.0
+          envers draft 2.0
+
+      smoke:
+        help: "Smoke tests"
+        dependencies:
+          - target: tests.smoke-init
+          - target: tests.smoke-draft
+
       ci:
         help: run the sames tests executed on CI
         dependencies:
           - target: tests.unit
+          - target: tests.smoke
           - target: tests.linter
 
   package:
