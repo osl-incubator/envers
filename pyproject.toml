@@ -24,7 +24,8 @@ typing-extensions = ">=4.9.0"
 jinja2 = ">=2"
 python-dotenv = ">=1.0"
 pyyaml = ">=5.0"
-distlib = "^0.3.8"
+distlib = ">=0.3.0"
+cryptography = ">=41.0"
 
 
 [tool.poetry.dev-dependencies]
@@ -48,7 +49,7 @@ mkdocs-macros-plugin = ">=0.7.0,<1"
 mkdocs-material = ">=9.1.15"
 mkdocstrings = ">=0.21.2"
 mkdocstrings-python = ">=1.1.2"
-makim =">=1.8.3"
+makim ="1.9.1"
 
 
 [tool.pytest.ini_options]

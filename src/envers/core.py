@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import io
 import os
 
 from pathlib import Path
@@ -10,10 +11,14 @@ from typing import Any
 import typer
 import yaml  # type: ignore
 
+from cryptography.fernet import InvalidToken
 from dotenv import dotenv_values
+
+from envers import crypt
 
 # constants
 ENVERS_SPEC_FILENAME = "specs.yaml"
+ENVERS_DATA_FILENAME = "data.lock"
 
 
 def escape_template_tag(v: str) -> str:
@@ -59,6 +64,36 @@ class Envers:
         # Create and write the default content to spec.yaml
         with open(spec_file, "w") as file:
             file.write("version: 0.1\nreleases:\n")
+
+    def _read_data_file(self, password: str = "") -> dict[str, Any]:
+        data_file = Path(".envers") / ENVERS_DATA_FILENAME
+
+        with open(data_file, "r") as file:
+            try:
+                raw_data = file.read()
+                if not raw_data:
+                    return {}
+                data_content = crypt.decrypt_data(raw_data, password)
+                data_lock = yaml.safe_load(io.StringIO(data_content)) or {}
+            except InvalidToken:
+                typer.echo("The given password is not correct. Try it again.")
+                raise typer.Exit()
+            except Exception:
+                typer.echo(
+                    "The data.lock is not valid. Please remove it to proceed."
+                )
+                raise typer.Exit()
+
+        return data_lock
+
+    def _write_data_file(
+        self, data: dict[str, Any], password: str = ""
+    ) -> None:
+        data_file = Path(".envers") / ENVERS_DATA_FILENAME
+
+        with open(data_file, "w") as file:
+            data_content = yaml.dump(data, sort_keys=False)
+            file.write(crypt.encrypt_data(data_content, password))
 
     def draft(
         self, version: str, from_version: str = "", from_env: str = ""
@@ -156,7 +191,9 @@ class Envers:
         None
         """
         specs_file = Path(".envers") / ENVERS_SPEC_FILENAME
-        data_file = Path(".envers") / "data.lock"
+        data_file = Path(".envers") / ENVERS_DATA_FILENAME
+
+        password = crypt.get_password()
 
         if not specs_file.exists():
             typer.echo("Spec file not found. Please initialize envers first.")
@@ -175,8 +212,7 @@ class Envers:
         del spec["status"]
 
         if data_file.exists():
-            with open(data_file, "r") as file:
-                data_lock = yaml.safe_load(file) or {}
+            data_lock = self._read_data_file(password)
 
             if not data_lock:
                 typer.echo("data.lock is not valid. Creating a new file.")
@@ -207,8 +243,7 @@ class Envers:
                 profile_data["files"][file_path] = file_data
             data_lock["releases"][version]["data"][profile_name] = profile_data
 
-        with open(data_file, "w") as file:
-            yaml.dump(data_lock, file, sort_keys=False)
+        self._write_data_file(data_lock, password)
 
         with open(specs_file, "w") as file:
             specs["releases"][version]["status"] = "deployed"
@@ -229,7 +264,7 @@ class Envers:
         -------
         None
         """
-        data_file = Path(".envers") / "data.lock"
+        data_file = Path(".envers") / ENVERS_DATA_FILENAME
 
         if not data_file.exists():
             typer.echo(
@@ -237,8 +272,9 @@ class Envers:
             )
             raise typer.Exit()
 
-        with open(data_file, "r") as file:
-            data_lock = yaml.safe_load(file) or {}
+        password = crypt.get_password()
+
+        data_lock = self._read_data_file(password)
 
         if not data_lock.get("releases", {}).get(spec, ""):
             typer.echo(f"Version {spec} not found in data.lock.")
@@ -270,8 +306,7 @@ class Envers:
 
         # Update data.lock file
         data_lock["releases"][spec]["data"][profile] = profile_data
-        with open(data_file, "w") as file:
-            yaml.dump(data_lock, file, sort_keys=False)
+        self._write_data_file(data_lock, password)
 
     def profile_load(self, profile: str, spec: str) -> None:
         """
@@ -299,8 +334,9 @@ class Envers:
             )
             raise typer.Exit()
 
-        with open(data_lock_file, "r") as file:
-            data_lock = yaml.safe_load(file) or {}
+        password = crypt.get_password()
+
+        data_lock = self._read_data_file(password)
 
         if not data_lock.get("releases", {}).get(spec, ""):
             typer.echo(f"Version {spec} not found in data.lock.")
