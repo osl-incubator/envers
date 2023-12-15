@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import os
+import sys
 
 from typing import cast
 
@@ -31,7 +32,15 @@ def create_fernet_key(password: str, salt: bytes) -> bytes:
 
 def get_password() -> str:
     """Prompt a password."""
-    return cast(str, typer.prompt("Enter your password", hide_input=True))
+    if sys.stdin.isatty():
+        # Interactive mode: Use Typer's prompt
+        password = cast(
+            str, typer.prompt("Enter your password", hide_input=True)
+        )
+    else:
+        # Non-interactive mode: Read from stdin
+        password = sys.stdin.readline().rstrip()
+    return password
 
 
 def generate_salt() -> bytes:
