@@ -18,7 +18,7 @@ include = ["src/envers/py.typed"]
 "envers" = "envers.__main__:app"
 
 [tool.poetry.dependencies]
-python = ">=3.8.1,<3.12"
+python = ">=3.8.1"
 typer = {extras = ["all"], version = ">=0.9.0"}
 typing-extensions = ">=4.9.0"
 jinja2 = ">=2"
