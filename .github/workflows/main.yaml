@@ -4,7 +4,16 @@ on: [push, pull_request]
 
 jobs:
   check-branch:
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 2
+    concurrency:
+      group: ci-check-branch-${{ github.ref }}
+      cancel-in-progress: true
+
     steps:
+      - uses: actions/checkout@v3
+
       - name: Check if the PR's branch is updated
         uses: osl-incubator/gh-check-pr-is-updated@1.0.0
         with:
