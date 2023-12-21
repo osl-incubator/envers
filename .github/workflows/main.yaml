@@ -3,7 +3,15 @@ name: build
 on: [push, pull_request]
 
 jobs:
+  check-branch:
+    steps:
+      - name: Check if the PR's branch is updated
+        uses: osl-incubator/gh-check-pr-is-updated@1.0.0
+        with:
+          remote_branch: origin/main
+          pr_sha: ${{ github.event.pull_request.head.sha }}
   build:
+    needs: check-branch
     strategy:
       matrix:
         python_version:
@@ -77,7 +85,40 @@ jobs:
       run: |
         makim tests.smoke
 
-    - name: Run style checks
+
+  linter-and-docs:
+    needs: check-branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    concurrency:
+      group: ci-linter-docs-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: conda-incubator/setup-miniconda@v3
+      with:
+        miniconda-version: "latest"
+        environment-file: conda/dev.yaml
+        channels: conda-forge,nodefaults
+        activate-environment: envers
+        auto-update-conda: true
+        conda-solver: libmamba
+
+    - name: Install dependencies
       run: |
-        pre-commit install
-        makim tests.linter
+        poetry config virtualenvs.create false
+        poetry install
+
+    - name: Test documentation generation
+      run: makim docs.build
+
+    - name: Run style checks
+      if: success() || failure()
+      run: makim tests.linter
