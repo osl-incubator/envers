@@ -13,6 +13,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Check if the PR's branch is updated
         uses: osl-incubator/gh-check-pr-is-updated@1.0.0
