@@ -10,6 +10,7 @@ jobs:
         with:
           remote_branch: origin/main
           pr_sha: ${{ github.event.pull_request.head.sha }}
+
   build:
     needs: check-branch
     strategy:
