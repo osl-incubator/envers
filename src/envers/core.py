@@ -176,13 +176,13 @@ class Envers:
         with open(spec_file, "w") as file:
             yaml.dump(specs, file, sort_keys=False)
 
-    def deploy(self, version: str) -> None:
+    def deploy(self, profile: str, spec: str) -> None:
         """
         Deploy a specific version, updating the .envers/data.lock file.
 
         Parameters
         ----------
-        version : str
+        spec : str
             The version number to be deployed.
 
         Returns
@@ -201,14 +201,14 @@ class Envers:
         with open(specs_file, "r") as file:
             specs = yaml.safe_load(file) or {}
 
-        if not specs.get("releases", {}).get(version, ""):
-            typer.echo(f"Version {version} not found in specs.yaml.")
+        if not specs.get("releases", {}).get(spec, ""):
+            typer.echo(f"Version {spec} not found in specs.yaml.")
             raise typer.Exit()
 
-        spec = copy.deepcopy(specs["releases"][version])
+        spec_data = copy.deepcopy(specs["releases"][spec])
 
         # all data in the data.lock file are deployed
-        del spec["status"]
+        del spec_data["status"]
 
         if data_file.exists():
             data_lock = self._read_data_file(password)
@@ -216,21 +216,21 @@ class Envers:
             if not data_lock:
                 typer.echo("data.lock is not valid. Creating a new file.")
                 data_lock = {
-                    "version": specs["version"],
+                    "version": spec_data["version"],
                     "releases": {},
                 }
-            data_lock["releases"][version] = {"spec": spec, "data": {}}
+            data_lock["releases"][spec] = {"spec": spec_data, "data": {}}
         else:
             data_lock = {
                 "version": specs["version"],
-                "releases": {version: {"spec": spec, "data": {}}},
+                "releases": {spec: {"spec": spec_data, "data": {}}},
             }
 
         # Populate data with default values
-        for profile_name in spec.get("profiles", []):
+        for profile_name in spec_data.get("profiles", []):
             profile_data: dict["str", dict[str, Any]] = {"files": {}}
             for file_path, file_info in (
-                spec.get("spec", {}).get("files", {}).items()
+                spec_data.get("spec", {}).get("files", {}).items()
             ):
                 file_data = {
                     "type": file_info.get("type", "dotenv"),
@@ -240,12 +240,12 @@ class Envers:
                     default_value = var_info.get("default", "")
                     file_data["vars"][var_name] = default_value
                 profile_data["files"][file_path] = file_data
-            data_lock["releases"][version]["data"][profile_name] = profile_data
+            data_lock["releases"][spec]["data"][profile_name] = profile_data
 
         self._write_data_file(data_lock, password)
 
         with open(specs_file, "w") as file:
-            specs["releases"][version]["status"] = "deployed"
+            specs["releases"][spec]["status"] = "deployed"
             yaml.dump(specs, file, sort_keys=False)
 
     def profile_set(self, profile: str, spec: str) -> None:

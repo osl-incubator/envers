@@ -36,10 +36,17 @@ def init(path: str = ".") -> None:
 
 
 @app.command()
-def deploy(version: str) -> None:
+def deploy(
+    profile: Annotated[
+        str, typer.Option(help="The name of the profile to set values for.")
+    ] = "",
+    spec: Annotated[
+        str, typer.Option(help="The version of the spec to use.")
+    ] = "",
+) -> None:
     """Deploy a specific version from the spec file."""
     envers = Envers()
-    envers.deploy(version)
+    envers.deploy(profile, spec)
 
 
 @app.command()

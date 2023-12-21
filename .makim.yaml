@@ -105,8 +105,8 @@ groups:
           export TEST_DATA="${CURRENT_PATH}/tests/data"
           export TEST_TMP="{{ env.TEST_TMP }}"
           cd "${TEST_TMP}"
-          echo "{{ env.ENVERS_PASS }}" | envers deploy 1.0
-          echo "{{ env.ENVERS_PASS }}" | envers deploy 2.0
+          echo "{{ env.ENVERS_PASS }}" | envers deploy --profile base --version 1.0
+          echo "{{ env.ENVERS_PASS }}" | envers deploy --profile base --version 2.0
 
       smoke:
         help: "Smoke tests"
