@@ -16,7 +16,7 @@ jobs:
         os:
           - 'ubuntu'
           - 'macos'
-          - 'windows'
+          # - 'windows'  # note: makim doesn't have support for windows yet
 
     runs-on: ${{ matrix.os }}-latest
 
