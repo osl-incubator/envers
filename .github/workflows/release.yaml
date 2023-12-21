@@ -33,7 +33,7 @@ jobs:
           channel-priority: true
           activate-environment: envers
           auto-update-conda: true
-        conda-solver: libmamba
+          conda-solver: libmamba
 
       - name: Install deps
         run: |
