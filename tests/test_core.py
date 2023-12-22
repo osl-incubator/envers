@@ -55,7 +55,14 @@ class TestEnvers:
 
     def test_temp_dir(self):
         """Test the temp_dir created by the setup."""
-        assert self.temp_dir.name == str(Path(".").absolute())
+        tmp_dir = self.temp_dir.name
+        cwd = str(Path(".").absolute())
+
+        cwd_undesired_prefix = "/private"
+
+        if cwd.startswith(cwd_undesired_prefix):
+            cwd = cwd[len(cwd_undesired_prefix) :]
+        assert tmp_dir == cwd
 
     def test_draft(self):
         """Test draft method."""
