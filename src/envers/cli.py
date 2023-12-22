@@ -50,10 +50,10 @@ def deploy(
 
 
 @app.command()
-def draft(version: str, from_version: str = "", from_env: str = "") -> None:
+def draft(version: str, from_spec: str = "", from_env: str = "") -> None:
     """Create a new version draft in the spec file."""
     envers = Envers()
-    envers.draft(version, from_version, from_env)
+    envers.draft(version, from_spec, from_env)
 
 
 @app.command()

@@ -16,6 +16,40 @@ from dotenv import dotenv_values
 
 from envers import crypt
 
+
+def merge_dicts(
+    dict_lhs: dict[str, Any], dict_rhs: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Merge two dictionaries recursively.
+
+    Parameters
+    ----------
+    dict_lhs : dict
+        The primary dictionary to retain values from.
+    dict_rhs : dict
+        The secondary dictionary to merge values from.
+
+    Returns
+    -------
+    dict
+        The merged dictionary.
+    """
+    dict_lhs = copy.deepcopy(dict_lhs)
+
+    for key in dict_rhs:
+        if key in dict_lhs:
+            if isinstance(dict_lhs[key], dict) and isinstance(
+                dict_rhs[key], dict
+            ):
+                merge_dicts(dict_lhs[key], dict_rhs[key])
+            else:
+                dict_lhs[key] = dict_rhs[key]
+        else:
+            dict_lhs[key] = dict_rhs[key]
+    return dict_lhs
+
+
 # constants
 ENVERS_SPEC_FILENAME = "specs.yaml"
 ENVERS_DATA_FILENAME = "data.lock"
@@ -33,37 +67,6 @@ def unescape_template_tag(v: str) -> str:
 
 class Envers:
     """EnversBase defined the base structure for the Envers classes."""
-
-    def init(self, path: Path) -> None:
-        """
-        Initialize Envers instance.
-
-        Initialize the envers environment at the given path. This includes
-        creating a .envers folder and a spec.yaml file within it with default
-        content.
-
-        Parameters
-        ----------
-        path : str, optional
-            The directory path where the envers environment will be
-            initialized. Defaults to the current directory (".").
-
-        Returns
-        -------
-        None
-        """
-        envers_path = path / ".envers"
-        spec_file = envers_path / ENVERS_SPEC_FILENAME
-
-        # Create .envers directory if it doesn't exist
-        os.makedirs(envers_path, exist_ok=True)
-
-        if spec_file.exists():
-            return
-
-        # Create and write the default content to spec.yaml
-        with open(spec_file, "w") as file:
-            file.write("version: 0.1\nreleases:\n")
 
     def _read_data_file(self, password: str = "") -> dict[str, Any]:
         data_file = Path(".envers") / ENVERS_DATA_FILENAME
@@ -95,8 +98,39 @@ class Envers:
             data_content = yaml.dump(data, sort_keys=False)
             file.write(crypt.encrypt_data(data_content, password))
 
+    def init(self, path: Path) -> None:
+        """
+        Initialize Envers instance.
+
+        Initialize the envers environment at the given path. This includes
+        creating a .envers folder and a spec.yaml file within it with default
+        content.
+
+        Parameters
+        ----------
+        path : str, optional
+            The directory path where the envers environment will be
+            initialized. Defaults to the current directory (".").
+
+        Returns
+        -------
+        None
+        """
+        envers_path = path / ".envers"
+        spec_file = envers_path / ENVERS_SPEC_FILENAME
+
+        # Create .envers directory if it doesn't exist
+        os.makedirs(envers_path, exist_ok=True)
+
+        if spec_file.exists():
+            return
+
+        # Create and write the default content to spec.yaml
+        with open(spec_file, "w") as file:
+            file.write("version: '0.1'\nreleases:\n")
+
     def draft(
-        self, version: str, from_version: str = "", from_env: str = ""
+        self, version: str, from_spec: str = "", from_env: str = ""
     ) -> None:
         """
         Create a new draft version in the spec file.
@@ -105,7 +139,7 @@ class Envers:
         ----------
         version : str
             The version number for the new draft.
-        from_version : str, optional
+        from_spec : str, optional
             The version number from which to copy the spec.
         from_env : str, optional
             The .env file from which to load environment variables.
@@ -133,17 +167,7 @@ class Envers:
             )
             return
 
-        if from_version:
-            if not specs.get("releases", {}).get(from_version, ""):
-                typer.echo(
-                    f"Source version {from_version} not found in specs.yaml."
-                )
-                raise typer.Exit()
-            specs["releases"][version] = copy.deepcopy(
-                specs["releases"][from_version]
-            )
-
-        else:
+        if not specs["releases"].get(version, {}):
             specs["releases"][version] = {
                 "status": "draft",
                 "docs": "",
@@ -151,27 +175,38 @@ class Envers:
                 "spec": {"files": {}},
             }
 
-            if from_env:
-                env_path = Path(from_env)
-                if not env_path.exists():
-                    typer.echo(f".env file {from_env} not found.")
-                    raise typer.Exit()
+        if from_spec:
+            if not specs.get("releases", {}).get(from_spec, ""):
+                typer.echo(
+                    f"Source version {from_spec} not found in specs.yaml."
+                )
+                raise typer.Exit()
 
-                # Read .env file and populate variables
-                env_vars = dotenv_values(env_path)
-                file_spec = {
-                    "type": "dotenv",
-                    "vars": {
-                        var: {
-                            "type": "string",
-                            "default": value,
-                        }
-                        for var, value in env_vars.items()
-                    },
-                }
-                specs["releases"][version]["spec"]["files"][
-                    env_path.name
-                ] = file_spec
+            specs["releases"][version] = merge_dicts(
+                specs["releases"][from_spec],
+                specs["releases"][version],
+            )
+
+        elif from_env:
+            env_path = Path(from_env)
+            if not env_path.exists():
+                typer.echo(f".env file {from_env} not found.")
+                raise typer.Exit()
+
+            # Read .env file and populate variables
+            env_vars = dotenv_values(env_path)
+            file_spec = {
+                "type": "dotenv",
+                "vars": {
+                    var: {
+                        "type": "string",
+                        "default": value,
+                    }
+                    for var, value in env_vars.items()
+                },
+            }
+            spec_files = specs["releases"][version]["spec"]["files"]
+            spec_files[from_env] = file_spec
 
         with open(spec_file, "w") as file:
             yaml.dump(specs, file, sort_keys=False)
