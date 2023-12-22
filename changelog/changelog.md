@@ -1,6 +1,13 @@
 # Release Notes
 ---
 
+# [0.3.0](https://github.com/osl-incubator/envers/compare/0.2.0...0.3.0) (2023-12-22)
+
+
+### Features
+
+* Separate data.lock per profile and fix small issues ([#8](https://github.com/osl-incubator/envers/issues/8)) ([91a8b3d](https://github.com/osl-incubator/envers/commit/91a8b3d8b0fa2900fc35e3149352a77d0fd40b2b))
+
 # [0.2.0](https://github.com/osl-incubator/envers/compare/0.1.0...0.2.0) (2023-12-15)
 
 

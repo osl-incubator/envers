@@ -2,32 +2,32 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://osl-incubator.github.io/envers/</loc>
-         <lastmod>2023-12-15</lastmod>
+         <lastmod>2023-12-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://osl-incubator.github.io/envers/changelog/</loc>
-         <lastmod>2023-12-15</lastmod>
+         <lastmod>2023-12-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://osl-incubator.github.io/envers/contributing/</loc>
-         <lastmod>2023-12-15</lastmod>
+         <lastmod>2023-12-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://osl-incubator.github.io/envers/example/</loc>
-         <lastmod>2023-12-15</lastmod>
+         <lastmod>2023-12-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://osl-incubator.github.io/envers/installation/</loc>
-         <lastmod>2023-12-15</lastmod>
+         <lastmod>2023-12-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://osl-incubator.github.io/envers/api/references/</loc>
-         <lastmod>2023-12-15</lastmod>
+         <lastmod>2023-12-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
