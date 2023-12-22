@@ -5,7 +5,7 @@ import base64
 import os
 import sys
 
-from typing import cast
+from typing import Optional, cast
 
 import typer
 
@@ -48,9 +48,9 @@ def generate_salt() -> bytes:
     return os.urandom(SALT_LENGTH)
 
 
-def encrypt_data(data: str, password: str = "") -> str:
+def encrypt_data(data: str, password: Optional[str] = None) -> str:
     """Encrypt the given data."""
-    if not password:
+    if password is None:
         password = get_password()
 
     salt = generate_salt()
@@ -62,9 +62,9 @@ def encrypt_data(data: str, password: str = "") -> str:
     return salt_hex + encrypted
 
 
-def decrypt_data(data: str, password: str = "") -> str:
+def decrypt_data(data: str, password: Optional[str] = None) -> str:
     """Decrypt the given data."""
-    if not password:
+    if password is None:
         password = get_password()
 
     HEX_SALT_LENGTH = SALT_LENGTH * 2

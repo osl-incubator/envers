@@ -6,7 +6,7 @@ import io
 import os
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import typer
 import yaml  # type: ignore
@@ -52,7 +52,7 @@ def merge_dicts(
 
 # constants
 ENVERS_SPEC_FILENAME = "specs.yaml"
-ENVERS_DATA_FILENAME = "data.lock"
+# ENVERS_DATA_FILENAME = "data.lock"
 
 
 def escape_template_tag(v: str) -> str:
@@ -68,8 +68,10 @@ def unescape_template_tag(v: str) -> str:
 class Envers:
     """EnversBase defined the base structure for the Envers classes."""
 
-    def _read_data_file(self, password: str = "") -> dict[str, Any]:
-        data_file = Path(".envers") / ENVERS_DATA_FILENAME
+    def _read_data_file(
+        self, profile: str, password: str = ""
+    ) -> dict[str, Any]:
+        data_file = Path(".envers") / "data" / f"{profile}.lock"
 
         with open(data_file, "r") as file:
             try:
@@ -90,9 +92,11 @@ class Envers:
         return data_lock
 
     def _write_data_file(
-        self, data: dict[str, Any], password: str = ""
+        self, profile: str, data: dict[str, Any], password: str = ""
     ) -> None:
-        data_file = Path(".envers") / ENVERS_DATA_FILENAME
+        data_file = Path(".envers") / "data" / f"{profile}.lock"
+
+        os.makedirs(data_file.parent, exist_ok=True)
 
         with open(data_file, "w") as file:
             data_content = yaml.dump(data, sort_keys=False)
@@ -213,23 +217,30 @@ class Envers:
         with open(spec_file, "w") as file:
             yaml.dump(specs, file, sort_keys=False)
 
-    def deploy(self, profile: str, spec: str) -> None:
+    def deploy(
+        self, profile: str, spec: str, password: Optional[str] = None
+    ) -> None:
         """
         Deploy a specific version, updating the .envers/data.lock file.
 
         Parameters
         ----------
+        profile : str
+            The profile to be deployed.
         spec : str
             The version number to be deployed.
+        password : Optional[str]
+            The password to be used for that profile.
 
         Returns
         -------
         None
         """
         specs_file = Path(".envers") / ENVERS_SPEC_FILENAME
-        data_file = Path(".envers") / ENVERS_DATA_FILENAME
+        data_file = Path(".envers") / "data" / f"{profile}.lock"
 
-        password = crypt.get_password()
+        if password is None:
+            password = crypt.get_password()
 
         if not specs_file.exists():
             typer.echo("Spec file not found. Please initialize envers first.")
@@ -248,7 +259,7 @@ class Envers:
         del spec_data["status"]
 
         if data_file.exists():
-            data_lock = self._read_data_file(password)
+            data_lock = self._read_data_file(profile, password)
 
             if not data_lock:
                 typer.echo("data.lock is not valid. Creating a new file.")
@@ -279,13 +290,15 @@ class Envers:
                 profile_data["files"][file_path] = file_data
             data_lock["releases"][spec]["data"][profile_name] = profile_data
 
-        self._write_data_file(data_lock, password)
+        self._write_data_file(profile, data_lock, password)
 
         with open(specs_file, "w") as file:
             specs["releases"][spec]["status"] = "deployed"
             yaml.dump(specs, file, sort_keys=False)
 
-    def profile_set(self, profile: str, spec: str) -> None:
+    def profile_set(
+        self, profile: str, spec: str, password: Optional[str] = None
+    ) -> None:
         """
         Set the profile values for a given spec version.
 
@@ -295,12 +308,14 @@ class Envers:
             The name of the profile to set values for.
         spec : str
             The version of the spec to use.
+        password : Optional[str]
+            The password to be used for that profile.
 
         Returns
         -------
         None
         """
-        data_file = Path(".envers") / ENVERS_DATA_FILENAME
+        data_file = Path(".envers") / "data" / f"{profile}.lock"
 
         if not data_file.exists():
             typer.echo(
@@ -308,9 +323,10 @@ class Envers:
             )
             raise typer.Exit()
 
-        password = crypt.get_password()
+        if password is None:
+            password = crypt.get_password()
 
-        data_lock = self._read_data_file(password)
+        data_lock = self._read_data_file(profile, password)
 
         if not data_lock.get("releases", {}).get(spec, ""):
             typer.echo(f"Version {spec} not found in data.lock.")
@@ -349,9 +365,11 @@ class Envers:
 
         # Update data.lock file
         data_lock["releases"][spec]["data"][profile] = profile_data
-        self._write_data_file(data_lock, password)
+        self._write_data_file(profile, data_lock, password)
 
-    def profile_load(self, profile: str, spec: str) -> None:
+    def profile_load(
+        self, profile: str, spec: str, password: Optional[str] = None
+    ) -> None:
         """
         Load a specific environment profile to files.
 
@@ -364,22 +382,25 @@ class Envers:
             The name of the profile to load.
         spec : str
             The version of the spec to use.
+        password : Optional[str]
+            The password to be used for that profile.
 
         Returns
         -------
         None
         """
-        data_lock_file = Path(".envers") / "data.lock"
+        data_file = Path(".envers") / "data" / f"{profile}.lock"
 
-        if not data_lock_file.exists():
+        if not data_file.exists():
             typer.echo(
                 "Data lock file not found. Please deploy a version first."
             )
             raise typer.Exit()
 
-        password = crypt.get_password()
+        if password is None:
+            password = crypt.get_password()
 
-        data_lock = self._read_data_file(password)
+        data_lock = self._read_data_file(profile, password)
 
         if not data_lock.get("releases", {}).get(spec, ""):
             typer.echo(f"Version {spec} not found in data.lock.")
