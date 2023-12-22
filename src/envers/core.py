@@ -325,11 +325,14 @@ class Envers:
             raise typer.Exit()
 
         # Iterate over files and variables
-        profile_title = f"Profile: {profile}"
-        typer.echo(f"{profile_title}\n{'=' * len(profile_title)}")
+        size = os.get_terminal_size()
+
+        profile_title = f" Profile: {profile} ".center(size.columns, "=")
+        typer.echo(f"\n{profile_title}\n")
+
         for file_path, file_info in profile_data.get("files", {}).items():
-            file_title = f"File: {file_path}"
-            typer.echo(f"{file_title}\n{'-' * len(file_title)}")
+            file_title = f">>> File: {file_path} "
+            typer.echo(f"{file_title}\n")
             for var_name, var_info in file_info.get("vars", {}).items():
                 current_value = var_info
                 new_value = typer.prompt(
@@ -337,6 +340,10 @@ class Envers:
                     default=current_value,
                 )
                 profile_data["files"][file_path]["vars"][var_name] = new_value
+
+            # update the size for each iteration
+            size = os.get_terminal_size()
+            typer.echo(f"\n{size.columns * '-'}\n")
 
         # Update data.lock file
         data_lock["releases"][spec]["data"][profile] = profile_data
