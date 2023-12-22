@@ -197,9 +197,11 @@ class Envers:
             env_vars = dotenv_values(env_path)
             file_spec = {
                 "type": "dotenv",
+                "docs": "",
                 "vars": {
                     var: {
                         "type": "string",
+                        "docs": "",
                         "default": value,
                     }
                     for var, value in env_vars.items()

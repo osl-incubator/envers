@@ -15,15 +15,17 @@ from envers.core import Envers
 def spec_v1():
     """Return dummy data for spec v1."""
     return {
-        "status": "draft",
         "docs": "",
+        "status": "draft",
         "profiles": ["base"],
         "spec": {
             "files": {
                 ".env": {
+                    "docs": "",
                     "type": "dotenv",
                     "vars": {
                         "var": {
+                            "docs": "",
                             "type": "string",
                             "default": "hello",
                         }
@@ -63,8 +65,8 @@ class TestEnvers:
             "version": "0.1",
             "releases": {
                 spec_version: {
-                    "status": "draft",
                     "docs": "",
+                    "status": "draft",
                     "profiles": ["base"],
                     "spec": {"files": {}},
                 }
@@ -161,9 +163,11 @@ class TestEnvers:
 
         spec_files = expected_data["releases"][v1]["spec"]["files"]
         spec_files[env_path_1] = {
+            "docs": "",
             "type": "dotenv",
             "vars": {
                 "var1": {
+                    "docs": "",
                     "type": "string",
                     "default": "hello1",
                 }
@@ -181,9 +185,11 @@ class TestEnvers:
 
         spec_files = expected_data["releases"][v1]["spec"]["files"]
         spec_files[env_path_2] = {
+            "docs": "",
             "type": "dotenv",
             "vars": {
                 "var2": {
+                    "docs": "",
                     "type": "string",
                     "default": "hello2",
                 }
