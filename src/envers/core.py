@@ -169,8 +169,8 @@ class Envers:
 
         if not specs["releases"].get(version, {}):
             specs["releases"][version] = {
-                "status": "draft",
                 "docs": "",
+                "status": "draft",
                 "profiles": ["base"],
                 "spec": {"files": {}},
             }
@@ -196,12 +196,12 @@ class Envers:
             # Read .env file and populate variables
             env_vars = dotenv_values(env_path)
             file_spec = {
-                "type": "dotenv",
                 "docs": "",
+                "type": "dotenv",
                 "vars": {
                     var: {
-                        "type": "string",
                         "docs": "",
+                        "type": "string",
                         "default": value,
                     }
                     for var, value in env_vars.items()
