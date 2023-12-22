@@ -13,10 +13,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        if: ${{ github.event_name == 'pull_request' }}
         with:
           fetch-depth: 0
 
       - name: Check if the PR's branch is updated
+        if: ${{ github.event_name == 'pull_request' }}
         uses: osl-incubator/gh-check-pr-is-updated@1.0.0
         with:
           remote_branch: origin/main
