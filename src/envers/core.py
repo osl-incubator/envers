@@ -6,7 +6,7 @@ import io
 import os
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import typer
 import yaml  # type: ignore
@@ -16,9 +16,43 @@ from dotenv import dotenv_values
 
 from envers import crypt
 
+
+def merge_dicts(
+    dict_lhs: dict[str, Any], dict_rhs: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Merge two dictionaries recursively.
+
+    Parameters
+    ----------
+    dict_lhs : dict
+        The primary dictionary to retain values from.
+    dict_rhs : dict
+        The secondary dictionary to merge values from.
+
+    Returns
+    -------
+    dict
+        The merged dictionary.
+    """
+    dict_lhs = copy.deepcopy(dict_lhs)
+
+    for key in dict_rhs:
+        if key in dict_lhs:
+            if isinstance(dict_lhs[key], dict) and isinstance(
+                dict_rhs[key], dict
+            ):
+                merge_dicts(dict_lhs[key], dict_rhs[key])
+            else:
+                dict_lhs[key] = dict_rhs[key]
+        else:
+            dict_lhs[key] = dict_rhs[key]
+    return dict_lhs
+
+
 # constants
 ENVERS_SPEC_FILENAME = "specs.yaml"
-ENVERS_DATA_FILENAME = "data.lock"
+# ENVERS_DATA_FILENAME = "data.lock"
 
 
 def escape_template_tag(v: str) -> str:
@@ -33,6 +67,40 @@ def unescape_template_tag(v: str) -> str:
 
 class Envers:
     """EnversBase defined the base structure for the Envers classes."""
+
+    def _read_data_file(
+        self, profile: str, password: str = ""
+    ) -> dict[str, Any]:
+        data_file = Path(".envers") / "data" / f"{profile}.lock"
+
+        with open(data_file, "r") as file:
+            try:
+                raw_data = file.read()
+                if not raw_data:
+                    return {}
+                data_content = crypt.decrypt_data(raw_data, password)
+                data_lock = yaml.safe_load(io.StringIO(data_content)) or {}
+            except InvalidToken:
+                typer.echo("The given password is not correct. Try it again.")
+                raise typer.Exit()
+            except Exception:
+                typer.echo(
+                    "The data.lock is not valid. Please remove it to proceed."
+                )
+                raise typer.Exit()
+
+        return data_lock
+
+    def _write_data_file(
+        self, profile: str, data: dict[str, Any], password: str = ""
+    ) -> None:
+        data_file = Path(".envers") / "data" / f"{profile}.lock"
+
+        os.makedirs(data_file.parent, exist_ok=True)
+
+        with open(data_file, "w") as file:
+            data_content = yaml.dump(data, sort_keys=False)
+            file.write(crypt.encrypt_data(data_content, password))
 
     def init(self, path: Path) -> None:
         """
@@ -63,40 +131,10 @@ class Envers:
 
         # Create and write the default content to spec.yaml
         with open(spec_file, "w") as file:
-            file.write("version: 0.1\nreleases:\n")
-
-    def _read_data_file(self, password: str = "") -> dict[str, Any]:
-        data_file = Path(".envers") / ENVERS_DATA_FILENAME
-
-        with open(data_file, "r") as file:
-            try:
-                raw_data = file.read()
-                if not raw_data:
-                    return {}
-                data_content = crypt.decrypt_data(raw_data, password)
-                data_lock = yaml.safe_load(io.StringIO(data_content)) or {}
-            except InvalidToken:
-                typer.echo("The given password is not correct. Try it again.")
-                raise typer.Exit()
-            except Exception:
-                typer.echo(
-                    "The data.lock is not valid. Please remove it to proceed."
-                )
-                raise typer.Exit()
-
-        return data_lock
-
-    def _write_data_file(
-        self, data: dict[str, Any], password: str = ""
-    ) -> None:
-        data_file = Path(".envers") / ENVERS_DATA_FILENAME
-
-        with open(data_file, "w") as file:
-            data_content = yaml.dump(data, sort_keys=False)
-            file.write(crypt.encrypt_data(data_content, password))
+            file.write("version: '0.1'\nreleases:\n")
 
     def draft(
-        self, version: str, from_version: str = "", from_env: str = ""
+        self, version: str, from_spec: str = "", from_env: str = ""
     ) -> None:
         """
         Create a new draft version in the spec file.
@@ -105,7 +143,7 @@ class Envers:
         ----------
         version : str
             The version number for the new draft.
-        from_version : str, optional
+        from_spec : str, optional
             The version number from which to copy the spec.
         from_env : str, optional
             The .env file from which to load environment variables.
@@ -133,66 +171,76 @@ class Envers:
             )
             return
 
-        if from_version:
-            if not specs.get("releases", {}).get(from_version, ""):
-                typer.echo(
-                    f"Source version {from_version} not found in specs.yaml."
-                )
-                raise typer.Exit()
-            specs["releases"][version] = copy.deepcopy(
-                specs["releases"][from_version]
-            )
-
-        else:
+        if not specs["releases"].get(version, {}):
             specs["releases"][version] = {
-                "status": "draft",
                 "docs": "",
+                "status": "draft",
                 "profiles": ["base"],
                 "spec": {"files": {}},
             }
 
-            if from_env:
-                env_path = Path(from_env)
-                if not env_path.exists():
-                    typer.echo(f".env file {from_env} not found.")
-                    raise typer.Exit()
+        if from_spec:
+            if not specs.get("releases", {}).get(from_spec, ""):
+                typer.echo(
+                    f"Source version {from_spec} not found in specs.yaml."
+                )
+                raise typer.Exit()
 
-                # Read .env file and populate variables
-                env_vars = dotenv_values(env_path)
-                file_spec = {
-                    "type": "dotenv",
-                    "vars": {
-                        var: {
-                            "type": "string",
-                            "default": value,
-                        }
-                        for var, value in env_vars.items()
-                    },
-                }
-                specs["releases"][version]["spec"]["files"][
-                    env_path.name
-                ] = file_spec
+            specs["releases"][version] = merge_dicts(
+                specs["releases"][from_spec],
+                specs["releases"][version],
+            )
+
+        elif from_env:
+            env_path = Path(from_env)
+            if not env_path.exists():
+                typer.echo(f".env file {from_env} not found.")
+                raise typer.Exit()
+
+            # Read .env file and populate variables
+            env_vars = dotenv_values(env_path)
+            file_spec = {
+                "docs": "",
+                "type": "dotenv",
+                "vars": {
+                    var: {
+                        "docs": "",
+                        "type": "string",
+                        "default": value,
+                    }
+                    for var, value in env_vars.items()
+                },
+            }
+            spec_files = specs["releases"][version]["spec"]["files"]
+            spec_files[from_env] = file_spec
 
         with open(spec_file, "w") as file:
             yaml.dump(specs, file, sort_keys=False)
 
-    def deploy(self, version: str) -> None:
+    def deploy(
+        self, profile: str, spec: str, password: Optional[str] = None
+    ) -> None:
         """
         Deploy a specific version, updating the .envers/data.lock file.
 
         Parameters
         ----------
-        version : str
+        profile : str
+            The profile to be deployed.
+        spec : str
             The version number to be deployed.
+        password : Optional[str]
+            The password to be used for that profile.
 
         Returns
         -------
         None
         """
         specs_file = Path(".envers") / ENVERS_SPEC_FILENAME
-        data_file = Path(".envers") / ENVERS_DATA_FILENAME
+        data_file = Path(".envers") / "data" / f"{profile}.lock"
 
-        password = crypt.get_password()
+        if password is None:
+            password = crypt.get_password()
 
         if not specs_file.exists():
             typer.echo("Spec file not found. Please initialize envers first.")
@@ -201,36 +249,36 @@ class Envers:
         with open(specs_file, "r") as file:
             specs = yaml.safe_load(file) or {}
 
-        if not specs.get("releases", {}).get(version, ""):
-            typer.echo(f"Version {version} not found in specs.yaml.")
+        if not specs.get("releases", {}).get(spec, ""):
+            typer.echo(f"Version {spec} not found in specs.yaml.")
             raise typer.Exit()
 
-        spec = copy.deepcopy(specs["releases"][version])
+        spec_data = copy.deepcopy(specs["releases"][spec])
 
         # all data in the data.lock file are deployed
-        del spec["status"]
+        del spec_data["status"]
 
         if data_file.exists():
-            data_lock = self._read_data_file(password)
+            data_lock = self._read_data_file(profile, password)
 
             if not data_lock:
                 typer.echo("data.lock is not valid. Creating a new file.")
                 data_lock = {
-                    "version": specs["version"],
+                    "version": spec_data["version"],
                     "releases": {},
                 }
-            data_lock["releases"][version] = {"spec": spec, "data": {}}
+            data_lock["releases"][spec] = {"spec": spec_data, "data": {}}
         else:
             data_lock = {
                 "version": specs["version"],
-                "releases": {version: {"spec": spec, "data": {}}},
+                "releases": {spec: {"spec": spec_data, "data": {}}},
             }
 
         # Populate data with default values
-        for profile_name in spec.get("profiles", []):
+        for profile_name in spec_data.get("profiles", []):
             profile_data: dict["str", dict[str, Any]] = {"files": {}}
             for file_path, file_info in (
-                spec.get("spec", {}).get("files", {}).items()
+                spec_data.get("spec", {}).get("files", {}).items()
             ):
                 file_data = {
                     "type": file_info.get("type", "dotenv"),
@@ -240,15 +288,17 @@ class Envers:
                     default_value = var_info.get("default", "")
                     file_data["vars"][var_name] = default_value
                 profile_data["files"][file_path] = file_data
-            data_lock["releases"][version]["data"][profile_name] = profile_data
+            data_lock["releases"][spec]["data"][profile_name] = profile_data
 
-        self._write_data_file(data_lock, password)
+        self._write_data_file(profile, data_lock, password)
 
         with open(specs_file, "w") as file:
-            specs["releases"][version]["status"] = "deployed"
+            specs["releases"][spec]["status"] = "deployed"
             yaml.dump(specs, file, sort_keys=False)
 
-    def profile_set(self, profile: str, spec: str) -> None:
+    def profile_set(
+        self, profile: str, spec: str, password: Optional[str] = None
+    ) -> None:
         """
         Set the profile values for a given spec version.
 
@@ -258,12 +308,14 @@ class Envers:
             The name of the profile to set values for.
         spec : str
             The version of the spec to use.
+        password : Optional[str]
+            The password to be used for that profile.
 
         Returns
         -------
         None
         """
-        data_file = Path(".envers") / ENVERS_DATA_FILENAME
+        data_file = Path(".envers") / "data" / f"{profile}.lock"
 
         if not data_file.exists():
             typer.echo(
@@ -271,9 +323,10 @@ class Envers:
             )
             raise typer.Exit()
 
-        password = crypt.get_password()
+        if password is None:
+            password = crypt.get_password()
 
-        data_lock = self._read_data_file(password)
+        data_lock = self._read_data_file(profile, password)
 
         if not data_lock.get("releases", {}).get(spec, ""):
             typer.echo(f"Version {spec} not found in data.lock.")
@@ -290,11 +343,14 @@ class Envers:
             raise typer.Exit()
 
         # Iterate over files and variables
-        profile_title = f"Profile: {profile}"
-        typer.echo(f"{profile_title}\n{'=' * len(profile_title)}")
+        size = os.get_terminal_size()
+
+        profile_title = f" Profile: {profile} ".center(size.columns, "=")
+        typer.echo(f"\n{profile_title}\n")
+
         for file_path, file_info in profile_data.get("files", {}).items():
-            file_title = f"File: {file_path}"
-            typer.echo(f"{file_title}\n{'-' * len(file_title)}")
+            file_title = f">>> File: {file_path} "
+            typer.echo(f"{file_title}\n")
             for var_name, var_info in file_info.get("vars", {}).items():
                 current_value = var_info
                 new_value = typer.prompt(
@@ -303,11 +359,17 @@ class Envers:
                 )
                 profile_data["files"][file_path]["vars"][var_name] = new_value
 
+            # update the size for each iteration
+            size = os.get_terminal_size()
+            typer.echo(f"\n{size.columns * '-'}\n")
+
         # Update data.lock file
         data_lock["releases"][spec]["data"][profile] = profile_data
-        self._write_data_file(data_lock, password)
+        self._write_data_file(profile, data_lock, password)
 
-    def profile_load(self, profile: str, spec: str) -> None:
+    def profile_load(
+        self, profile: str, spec: str, password: Optional[str] = None
+    ) -> None:
         """
         Load a specific environment profile to files.
 
@@ -320,22 +382,25 @@ class Envers:
             The name of the profile to load.
         spec : str
             The version of the spec to use.
+        password : Optional[str]
+            The password to be used for that profile.
 
         Returns
         -------
         None
         """
-        data_lock_file = Path(".envers") / "data.lock"
+        data_file = Path(".envers") / "data" / f"{profile}.lock"
 
-        if not data_lock_file.exists():
+        if not data_file.exists():
             typer.echo(
                 "Data lock file not found. Please deploy a version first."
             )
             raise typer.Exit()
 
-        password = crypt.get_password()
+        if password is None:
+            password = crypt.get_password()
 
-        data_lock = self._read_data_file(password)
+        data_lock = self._read_data_file(profile, password)
 
         if not data_lock.get("releases", {}).get(spec, ""):
             typer.echo(f"Version {spec} not found in data.lock.")

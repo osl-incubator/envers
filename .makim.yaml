@@ -93,7 +93,7 @@ groups:
           envers init
           echo "ENV=dev" > .env
           envers draft 1.0 --from-env .env
-          envers draft 2.0 --from-version 1.0
+          envers draft 2.0 --from-spec 1.0
 
       smoke-deploy:
         help: "Smoke test for envers draft"
@@ -105,8 +105,8 @@ groups:
           export TEST_DATA="${CURRENT_PATH}/tests/data"
           export TEST_TMP="{{ env.TEST_TMP }}"
           cd "${TEST_TMP}"
-          echo "{{ env.ENVERS_PASS }}" | envers deploy 1.0
-          echo "{{ env.ENVERS_PASS }}" | envers deploy 2.0
+          echo "{{ env.ENVERS_PASS }}" | envers deploy --profile base --spec 1.0
+          echo "{{ env.ENVERS_PASS }}" | envers deploy --profile base --spec 2.0
 
       smoke:
         help: "Smoke tests"
