@@ -93,7 +93,7 @@ groups:
           envers init
           echo "ENV=dev" > .env
           envers draft 1.0 --from-env .env
-          envers draft 2.0 --from-version 1.0
+          envers draft 2.0 --from-spec 1.0
 
       smoke-deploy:
         help: "Smoke test for envers draft"
