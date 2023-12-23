@@ -1,6 +1,14 @@
 # Release Notes
 ---
 
+# [0.4.0](https://github.com/osl-incubator/envers/compare/0.3.0...0.4.0) (2023-12-23)
+
+
+### Features
+
+* Add step for password confirmation for the deploy command ([#15](https://github.com/osl-incubator/envers/issues/15)) ([72c270e](https://github.com/osl-incubator/envers/commit/72c270ef4741fac93e60300f6866b607f8771447))
+* **cli:** Implement --version flag to CLI ([#11](https://github.com/osl-incubator/envers/issues/11)) ([5fd7a68](https://github.com/osl-incubator/envers/commit/5fd7a685282e0e5750b209a1206272d3d99dc391))
+
 # [0.3.0](https://github.com/osl-incubator/envers/compare/0.2.0...0.3.0) (2023-12-22)
 
 

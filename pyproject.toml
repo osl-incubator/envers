@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "envers"
-version = "0.3.0"  # semantic-release
+version = "0.4.0"  # semantic-release
 description = "Envers is a tool for handling environment files (e.g. .env) for multiple kind of environments with versioning"
 authors = ["Ivan Ogasawara <ivan.ogasawara@gmail.com>"]
 packages = [
