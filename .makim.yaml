@@ -105,8 +105,14 @@ groups:
           export TEST_DATA="${CURRENT_PATH}/tests/data"
           export TEST_TMP="{{ env.TEST_TMP }}"
           cd "${TEST_TMP}"
-          echo "{{ env.ENVERS_PASS }}" | envers deploy --profile base --spec 1.0
-          echo "{{ env.ENVERS_PASS }}" | envers deploy --profile base --spec 2.0
+          envers deploy --profile base --spec 1.0 << EOF
+          $(echo "{{ env.ENVERS_PASS }}")
+          $(echo "{{ env.ENVERS_PASS }}")
+          EOF
+          envers deploy --profile base --spec 2.0 << EOF
+          $(echo "{{ env.ENVERS_PASS }}")
+          $(echo "{{ env.ENVERS_PASS }}")
+          EOF
 
       smoke:
         help: "Smoke tests"
