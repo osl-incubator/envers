@@ -30,13 +30,12 @@ def create_fernet_key(password: str, salt: bytes) -> bytes:
     return base64.urlsafe_b64encode(kdf.derive(password.encode("utf-8")))
 
 
-def get_password() -> str:
+def get_password(message: str = "") -> str:
     """Prompt a password."""
     if sys.stdin.isatty():
         # Interactive mode: Use Typer's prompt
-        password = cast(
-            str, typer.prompt("Enter your password", hide_input=True)
-        )
+        message = "Enter your password" if not message else message
+        password = cast(str, typer.prompt(message, hide_input=True))
     else:
         # Non-interactive mode: Read from stdin
         password = sys.stdin.readline().rstrip()

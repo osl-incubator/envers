@@ -17,6 +17,13 @@ from dotenv import dotenv_values
 from envers import crypt
 
 
+def raise_error(message: str, exit_code: int = 1) -> None:
+    """Raise an error using typer."""
+    red_text = typer.style(message, fg=typer.colors.RED, bold=True)
+    typer.echo(red_text, err=True, color=True)
+    raise typer.Exit(exit_code)
+
+
 def merge_dicts(
     dict_lhs: dict[str, Any], dict_rhs: dict[str, Any]
 ) -> dict[str, Any]:
@@ -81,13 +88,11 @@ class Envers:
                 data_content = crypt.decrypt_data(raw_data, password)
                 data_lock = yaml.safe_load(io.StringIO(data_content)) or {}
             except InvalidToken:
-                typer.echo("The given password is not correct. Try it again.")
-                raise typer.Exit()
+                raise_error("The given password is not correct. Try it again.")
             except Exception:
-                typer.echo(
+                raise_error(
                     "The data.lock is not valid. Please remove it to proceed."
                 )
-                raise typer.Exit()
 
         return data_lock
 
@@ -155,8 +160,7 @@ class Envers:
         spec_file = Path(".envers") / ENVERS_SPEC_FILENAME
 
         if not spec_file.exists():
-            typer.echo("Spec file not found. Please initialize envers first.")
-            raise typer.Exit()
+            raise_error("Spec file not found. Please initialize envers first.")
 
         with open(spec_file, "r") as file:
             specs = yaml.safe_load(file) or {}
@@ -165,11 +169,11 @@ class Envers:
             specs["releases"] = {}
 
         if specs.get("releases", {}).get("version", ""):
+            # warning
             typer.echo(
                 f"The given version {version} is already defined in the "
                 "specs.yaml file."
             )
-            return
 
         if not specs["releases"].get(version, {}):
             specs["releases"][version] = {
@@ -181,10 +185,9 @@ class Envers:
 
         if from_spec:
             if not specs.get("releases", {}).get(from_spec, ""):
-                typer.echo(
+                raise_error(
                     f"Source version {from_spec} not found in specs.yaml."
                 )
-                raise typer.Exit()
 
             specs["releases"][version] = merge_dicts(
                 specs["releases"][from_spec],
@@ -194,8 +197,7 @@ class Envers:
         elif from_env:
             env_path = Path(from_env)
             if not env_path.exists():
-                typer.echo(f".env file {from_env} not found.")
-                raise typer.Exit()
+                raise_error(f".env file {from_env} not found.")
 
             # Read .env file and populate variables
             env_vars = dotenv_values(env_path)
@@ -239,19 +241,14 @@ class Envers:
         specs_file = Path(".envers") / ENVERS_SPEC_FILENAME
         data_file = Path(".envers") / "data" / f"{profile}.lock"
 
-        if password is None:
-            password = crypt.get_password()
-
         if not specs_file.exists():
-            typer.echo("Spec file not found. Please initialize envers first.")
-            raise typer.Exit()
+            raise_error("Spec file not found. Please initialize envers first.")
 
         with open(specs_file, "r") as file:
             specs = yaml.safe_load(file) or {}
 
         if not specs.get("releases", {}).get(spec, ""):
-            typer.echo(f"Version {spec} not found in specs.yaml.")
-            raise typer.Exit()
+            raise_error(f"Version {spec} not found in specs.yaml.")
 
         spec_data = copy.deepcopy(specs["releases"][spec])
 
@@ -259,6 +256,9 @@ class Envers:
         del spec_data["status"]
 
         if data_file.exists():
+            if password is None:
+                password = crypt.get_password()
+
             data_lock = self._read_data_file(profile, password)
 
             if not data_lock:
@@ -273,6 +273,20 @@ class Envers:
                 "version": specs["version"],
                 "releases": {spec: {"spec": spec_data, "data": {}}},
             }
+
+            if password is None:
+                new_password = crypt.get_password()
+                new_password_confirmation = crypt.get_password(
+                    "Confirm your password"
+                )
+
+                if new_password != new_password_confirmation:
+                    raise_error(
+                        "The password and confirmation do not match. "
+                        "Please try again."
+                    )
+
+                password = new_password
 
         # Populate data with default values
         for profile_name in spec_data.get("profiles", []):
@@ -318,10 +332,9 @@ class Envers:
         data_file = Path(".envers") / "data" / f"{profile}.lock"
 
         if not data_file.exists():
-            typer.echo(
+            raise_error(
                 "Data lock file not found. Please deploy a version first."
             )
-            raise typer.Exit()
 
         if password is None:
             password = crypt.get_password()
@@ -329,18 +342,16 @@ class Envers:
         data_lock = self._read_data_file(profile, password)
 
         if not data_lock.get("releases", {}).get(spec, ""):
-            typer.echo(f"Version {spec} not found in data.lock.")
-            raise typer.Exit()
+            raise_error(f"Version {spec} not found in data.lock.")
 
         release_data = data_lock["releases"][spec]
         profile_data = release_data.get("data", {}).get(profile, {})
 
         if not (profile_data and profile_data.get("files", {})):
-            typer.echo(
+            raise_error(
                 f"There is no data spec for version '{spec}' "
                 f"and profile '{profile}'"
             )
-            raise typer.Exit()
 
         # Iterate over files and variables
         size = os.get_terminal_size()
@@ -392,10 +403,9 @@ class Envers:
         data_file = Path(".envers") / "data" / f"{profile}.lock"
 
         if not data_file.exists():
-            typer.echo(
+            raise_error(
                 "Data lock file not found. Please deploy a version first."
             )
-            raise typer.Exit()
 
         if password is None:
             password = crypt.get_password()
@@ -403,8 +413,7 @@ class Envers:
         data_lock = self._read_data_file(profile, password)
 
         if not data_lock.get("releases", {}).get(spec, ""):
-            typer.echo(f"Version {spec} not found in data.lock.")
-            raise typer.Exit()
+            raise_error(f"Version {spec} not found in data.lock.")
 
         release_data = data_lock["releases"][spec]
         profile_data = release_data.get("data", {}).get(profile, {"files": {}})
