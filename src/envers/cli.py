@@ -5,11 +5,34 @@ from pathlib import Path
 
 import typer
 
+from typer import Context, Option
 from typing_extensions import Annotated
 
+from envers import __version__
 from envers.core import Envers
 
 app = typer.Typer()
+
+
+@app.callback(invoke_without_command=True)
+def main(
+    ctx: Context,
+    version: bool = Option(
+        None,
+        "--version",
+        "-v",
+        is_flag=True,
+        help="Show the version and exit.",
+    ),
+) -> None:
+    """Process envers for specific flags, otherwise show the help menu."""
+    if version:
+        typer.echo(f"Version: {__version__}")
+        raise typer.Exit()
+
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit(0)
 
 
 @app.command()
