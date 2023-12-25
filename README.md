@@ -7,22 +7,18 @@ handle environment-specific configurations.
 
 ## Features
 
-- **Encrypted Variable Management**: Uses Ansible Vault for encrypting
-  sensitive variables.
-- **Versioning**: Manages environment variables by versions and groups
-  within a `.envers/envers.yaml` file.
-- **Group-Based Configurations**: Allows defining variables for different
-  groups like `prod`, `dev`, etc.
-- **File-Based Variable Definitions**: Supports multiple environment files
-  (.env) with specific variables for each file.
-- **CLI-Driven**: All interactions with `.envers/.envers.yaml` are done
-  through the CLI, ensuring consistency and security.
-- **Two-Stage Management**: Similar to git, `envers` operates in two stages -
-  development (`dev`) and release.
-- **Spec Management**: Each release has a defined spec that applies to all
-  groups within that release.
-- **Environment File Generation**: Enables generating .env files for specific
-  versions and groups using commands.
+* Encrypt environment variables: Creates encrypted files that store environment
+  variables that can be safely stored in a git repository
+* Group-Based Configurations: Allows defining variables for different
+  groups/profiles like prod, dev, etc.
+* File-Based Variable Definitions: Supports multiple environment files (.env) with
+  specific variables for each file.
+* CLI-Driven: Provide CLI commands that helps to create drafts for environment
+  variables and deploy it to encrypted files
+* Spec Management: Each release has a defined spec that applies to all
+  groups/profiles within that release.
+* Environment File Generation: Enables generating .env files for specific versions
+  and groups/profiles using commands.
 
 ## Installation
 
