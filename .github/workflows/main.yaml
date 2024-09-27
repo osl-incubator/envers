@@ -2,9 +2,9 @@ name: build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   check-branch:
@@ -16,7 +16,7 @@ jobs:
       cancel-in-progress: true
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: ${{ github.event_name == 'pull_request' }}
         with:
           fetch-depth: 0
@@ -28,8 +28,7 @@ jobs:
           remote_branch: origin/main
           pr_sha: ${{ github.event.pull_request.head.sha }}
 
-  build:
-    needs: check-branch
+  tests:
     strategy:
       matrix:
         python_version:
@@ -40,8 +39,8 @@ jobs:
           - "3.12"
 
         os:
-          - 'ubuntu'
-          - 'macos'
+          - "ubuntu"
+          - "macos"
           # - 'windows'  # note: makim doesn't have support for windows yet
 
     runs-on: ${{ matrix.os }}-latest
@@ -56,56 +55,43 @@ jobs:
         shell: bash -l {0}
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-    - name: Install MacOS extra tools and add extra setup
-      if: ${{ matrix.os == 'macos' }}
-      run: |
-        sudo mkdir -p /tmp
-        sudo chmod 777 /tmp
+      - name: Install MacOS extra tools and add extra setup
+        if: ${{ matrix.os == 'macos' }}
+        run: |
+          sudo mkdir -p /tmp
+          sudo chmod 777 /tmp
 
-        brew install gnu-sed
-        echo 'export PATH="/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"' >> ~/.bashrc
-        echo 'export PATH="/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"' >> ~/.bash_profile
+          brew install gnu-sed
+          echo 'export PATH="/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"' >> ~/.bashrc
+          echo 'export PATH="/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"' >> ~/.bash_profile
 
-    - name: Prepare conda environment (windows)
-      if: ${{ matrix.os == 'windows' }}
-      run: |
-        $env:Path += ";C:\Program Files\Git\usr\bin"
-        sed -i s/python\ 3\.8/python\ ${{ matrix.python_version }}/ conda/dev.yaml
-        cat conda/dev.yaml
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          environment-file: conda/dev.yaml
+          channels: conda-forge,nodefaults
+          activate-environment: envers
+          auto-update-conda: true
+          conda-solver: libmamba
+          python-version: "${{ matrix.python_version }}"
 
-    - name: Prepare conda environment
-      if: ${{ matrix.os != 'windows' }}
-      run: |
-        sed -i s/python\ 3\.8\.1/python\ ${{ matrix.python_version }}/ conda/dev.yaml
-        cat conda/dev.yaml
+      - name: Install dependencies
+        run: |
+          poetry config virtualenvs.create false
+          poetry check
+          poetry install
 
-    - uses: conda-incubator/setup-miniconda@v3
-      with:
-        miniconda-version: "latest"
-        environment-file: conda/dev.yaml
-        channels: conda-forge,nodefaults
-        channel-priority: true
-        activate-environment: envers
-        auto-update-conda: true
-        conda-solver: libmamba
+      - name: Run tests
+        run: |
+          makim tests.unit
 
-    - name: Install dependencies
-      run: |
-        poetry install
-
-    - name: Run tests
-      run: |
-        makim tests.unit
-
-    - name: Run smoke tests
-      run: |
-        makim tests.smoke
-
+      - name: Run smoke tests
+        run: |
+          makim tests.smoke
 
   linter-and-docs:
-    needs: check-branch
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -118,25 +104,27 @@ jobs:
       cancel-in-progress: true
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-    - uses: conda-incubator/setup-miniconda@v3
-      with:
-        miniconda-version: "latest"
-        environment-file: conda/dev.yaml
-        channels: conda-forge,nodefaults
-        activate-environment: envers
-        auto-update-conda: true
-        conda-solver: libmamba
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          environment-file: conda/dev.yaml
+          channels: conda-forge,nodefaults
+          activate-environment: envers
+          auto-update-conda: true
+          conda-solver: libmamba
+          python-version: "3.8.1"
 
-    - name: Install dependencies
-      run: |
-        poetry config virtualenvs.create false
-        poetry install
+      - name: Install dependencies
+        run: |
+          poetry config virtualenvs.create false
+          poetry check
+          poetry install
 
-    - name: Test documentation generation
-      run: makim docs.build
+      - name: Test documentation generation
+        run: makim docs.build
 
-    - name: Run style checks
-      if: success() || failure()
-      run: makim tests.linter
+      - name: Run style checks
+        if: success() || failure()
+        run: makim tests.linter

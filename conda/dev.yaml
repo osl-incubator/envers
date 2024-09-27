@@ -3,8 +3,8 @@ channels:
   - nodefaults
   - conda-forge
 dependencies:
-  - python >=3.8.1
+  - python
   - pip
   - poetry >=1.5
-  - nodejs  # used by semantic-release
+  - nodejs # used by semantic-release
   - shellcheck
