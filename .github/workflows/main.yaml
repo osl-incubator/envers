@@ -91,7 +91,7 @@ jobs:
         run: |
           makim tests.smoke
 
-  linter-and-docs:
+  linter:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -100,7 +100,7 @@ jobs:
         shell: bash -l {0}
 
     concurrency:
-      group: ci-linter-docs-${{ github.ref }}
+      group: ci-linter-${{ github.ref }}
       cancel-in-progress: true
 
     steps:
@@ -122,9 +122,5 @@ jobs:
           poetry check
           poetry install
 
-      - name: Test documentation generation
-        run: makim docs.build
-
-      - name: Run style checks
-        if: success() || failure()
+      - name: Linter
         run: makim tests.linter
