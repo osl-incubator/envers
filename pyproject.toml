@@ -18,7 +18,7 @@ include = ["src/envers/py.typed"]
 "envers" = "envers.__main__:app"
 
 [tool.poetry.dependencies]
-python = ">=3.8.1"
+python = ">=3.8.1,<4"
 typer = {extras = ["all"], version = ">=0.9.0"}
 typing-extensions = ">=4.9.0"
 jinja2 = ">=2"
@@ -78,6 +78,9 @@ exclude = [
   'docs',
 ]
 
+[tool.ruff.format]
+quote-style = "double"
+
 [tool.ruff.lint]
 select = [
   "E",   # pycodestyle
@@ -88,10 +91,10 @@ select = [
   "I001",  # isort
 ]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 # Use a single line between direct and from import
 lines-between-types = 1
 
@@ -103,3 +106,5 @@ ignore_missing_imports = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_unused_configs = true
+show_error_codes = true
+exclude = ["scripts/"]
