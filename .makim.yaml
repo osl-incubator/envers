@@ -1,7 +1,7 @@
 version: 1.0
 groups:
   clean:
-    targets:
+    tasks:
       all:
         help: Clean unnecessary temporary files
         run: |
@@ -21,7 +21,7 @@ groups:
           rm -fr .ruff_cache
 
   docs:
-    targets:
+    tasks:
       build:
         help: Build documentation
         run: |
@@ -30,7 +30,7 @@ groups:
       preview:
         help: Preview documentation page locally
         dependencies:
-          - target: docs.build
+          - task: docs.build
         run: |
           mkdocs build --config-file docs/mkdocs.yaml
 
@@ -39,7 +39,7 @@ groups:
       TEST_TMP: /tmp/envers
       ENVERS_PASS: ASDF1234
 
-    targets:
+    tasks:
       linter:
         help: Run linter tools
         run: |
@@ -58,13 +58,13 @@ groups:
             type: string
             default: "-vv"
         run: |
-          pytest {{ args.path }} {{ args.params }}
+          pytest ${{ args.path }} ${{ args.params }}
 
       smoke-setup:
         help: "Smoke test for envers init"
         shell: bash
         run: |
-          export TEST_TMP="{{ env.TEST_TMP }}"
+          export TEST_TMP="${{ env.TEST_TMP }}"
           rm -rf "${TEST_TMP}"
           mkdir -p "${TEST_TMP}"
           cd "${TEST_TMP}"
@@ -72,10 +72,10 @@ groups:
       smoke-init:
         help: "Smoke test for envers init"
         dependencies:
-          - target: tests.smoke-setup
+          - task: tests.smoke-setup
         shell: bash
         run: |
-          export TEST_TMP="{{ env.TEST_TMP }}"
+          export TEST_TMP="${{ env.TEST_TMP }}"
           cd "${TEST_TMP}"
           envers init
           test -f "${TEST_TMP}/.envers/specs.yaml"
@@ -84,11 +84,11 @@ groups:
         help: "Smoke test for envers draft"
         shell: bash
         dependencies:
-          - target: tests.smoke-init
+          - task: tests.smoke-init
         run: |
           export CURRENT_PATH="$(pwd)"
           export TEST_DATA="${CURRENT_PATH}/tests/data"
-          export TEST_TMP="{{ env.TEST_TMP }}"
+          export TEST_TMP="${{ env.TEST_TMP }}"
           cd "${TEST_TMP}"
           envers init
           echo "ENV=dev" > .env
@@ -99,37 +99,37 @@ groups:
         help: "Smoke test for envers draft"
         shell: bash
         dependencies:
-          - target: tests.smoke-draft
+          - task: tests.smoke-draft
         run: |
           export CURRENT_PATH="$(pwd)"
           export TEST_DATA="${CURRENT_PATH}/tests/data"
-          export TEST_TMP="{{ env.TEST_TMP }}"
+          export TEST_TMP="${{ env.TEST_TMP }}"
           cd "${TEST_TMP}"
           envers deploy --profile base --spec 1.0 << EOF
-          $(echo "{{ env.ENVERS_PASS }}")
-          $(echo "{{ env.ENVERS_PASS }}")
+          $(echo "${{ env.ENVERS_PASS }}")
+          $(echo "${{ env.ENVERS_PASS }}")
           EOF
           envers deploy --profile base --spec 2.0 << EOF
-          $(echo "{{ env.ENVERS_PASS }}")
-          $(echo "{{ env.ENVERS_PASS }}")
+          $(echo "${{ env.ENVERS_PASS }}")
+          $(echo "${{ env.ENVERS_PASS }}")
           EOF
 
       smoke:
         help: "Smoke tests"
         dependencies:
-          - target: tests.smoke-init
-          - target: tests.smoke-draft
-          - target: tests.smoke-deploy
+          - task: tests.smoke-init
+          - task: tests.smoke-draft
+          - task: tests.smoke-deploy
 
       ci:
         help: run the sames tests executed on CI
         dependencies:
-          - target: tests.unit
-          - target: tests.smoke
-          - target: tests.linter
+          - task: tests.unit
+          - task: tests.smoke
+          - task: tests.linter
 
   package:
-    targets:
+    tasks:
       build:
         help: "Build the package"
         run: |
@@ -150,11 +150,11 @@ groups:
         -p "semantic-release-replace-plugin" \
         semantic-release
 
-    targets:
+    tasks:
       ci:
         help: run semantic release on CI
-        run: {{ vars.app }} --ci
+        run: ${{ vars.app }} --ci
 
       dry:
         help: run semantic release in dry-run mode
-        run: {{ vars.app }} --dry-run
+        run: ${{ vars.app }} --dry-run

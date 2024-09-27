@@ -32,7 +32,7 @@ pytest = ">=7.3.2"
 pytest-cov = ">=4.1.0"
 coverage = ">=7.2.7"
 pre-commit = ">=3.3.2"
-ruff = ">=0.1.5"
+ruff = ">=0.6.0"
 mypy = ">=1.6.0"
 bandit = ">=1.7.5"
 vulture = ">=2.7"
@@ -48,7 +48,7 @@ mkdocs-macros-plugin = ">=0.7.0,<1"
 mkdocs-material = ">=9.1.15"
 mkdocstrings = ">=0.21.2"
 mkdocstrings-python = ">=1.1.2"
-makim ="1.9.1"
+makim ="1.16.0"
 
 
 [tool.pytest.ini_options]
