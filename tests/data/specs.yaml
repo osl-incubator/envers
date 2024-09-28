@@ -1,10 +1,10 @@
 version: 0.1
 releases:
-  '1.0':
+  "1.0":
     status: deployed
-    docs: ''
+    docs: ""
     profiles:
-    - base
+      - base
     spec:
       files:
         .env:
@@ -18,7 +18,7 @@ releases:
               default: envers
             VERSION:
               type: string
-              default: '1.0'
+              default: "1.0"
         .env.test:
           type: dotenv
           vars:
@@ -30,12 +30,12 @@ releases:
               default: envers
             VERSION2:
               type: string
-              default: '1.0'
-  '2.0':
+              default: "1.0"
+  "2.0":
     status: deployed
-    docs: ''
+    docs: ""
     profiles:
-    - base
+      - base
     spec:
       files:
         .env:
@@ -49,7 +49,7 @@ releases:
               default: envers
             VERSION:
               type: string
-              default: '1.0'
+              default: "1.0"
             USE_CONTAINER:
               type: bool
               default: true

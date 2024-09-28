@@ -1,9 +1,13 @@
 """Tests for envers package."""
+
+from __future__ import annotations
+
 import copy
 import os
 import tempfile
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
@@ -11,8 +15,19 @@ import yaml
 from envers.core import Envers
 
 
+def rmdir(directory: Path) -> None:
+    """Remove directory recursively."""
+    directory = Path(directory)
+    for item in directory.iterdir():
+        if item.is_dir():
+            rmdir(item)
+        else:
+            item.unlink()
+    directory.rmdir()
+
+
 @pytest.fixture
-def spec_v1():
+def spec_v1() -> dict[str, Any]:
     """Return dummy data for spec v1."""
     return {
         "docs": "",
@@ -39,7 +54,11 @@ def spec_v1():
 class TestEnvers:
     """Tests for Envers class."""
 
-    def setup(self):
+    temp_dir: tempfile.TemporaryDirectory
+    original_cwd: str
+    envers: Envers
+
+    def setup_method(self) -> None:
         """Create a temporary directory."""
         self.temp_dir = tempfile.TemporaryDirectory()
         self.original_cwd = os.getcwd()
@@ -48,12 +67,12 @@ class TestEnvers:
         self.envers = Envers()
         self.envers.init(Path("."))
 
-    def teardown(self):
+    def teardown_method(self) -> None:
         """Clean up temporary data."""
         os.chdir(self.original_cwd)
         self.temp_dir.cleanup()
 
-    def test_temp_dir(self):
+    def test_temp_dir(self) -> None:
         """Test the temp_dir created by the setup."""
         tmp_dir = self.temp_dir.name
         cwd = str(Path(".").absolute())
@@ -64,7 +83,7 @@ class TestEnvers:
             cwd = cwd[len(cwd_undesired_prefix) :]
         assert tmp_dir == cwd
 
-    def test_draft(self):
+    def test_draft(self) -> None:
         """Test draft method."""
         spec_version = "1.0"
         self.envers.draft(spec_version)
@@ -86,7 +105,7 @@ class TestEnvers:
 
         assert expected_data == result_data
 
-    def test_draft_from_spec(self, spec_v1):
+    def test_draft_from_spec(self, spec_v1) -> None:
         """Test draft method with from_spec."""
         v1 = "1.0"
         v2 = "2.0"
@@ -106,7 +125,7 @@ class TestEnvers:
 
         assert expected_data == result_data
 
-    def test_draft_from_env(self, spec_v1):
+    def test_draft_from_env(self, spec_v1) -> None:
         """Test draft method with from_env."""
         v1 = "1.0"
 
@@ -122,7 +141,7 @@ class TestEnvers:
 
         assert expected_data == result_data
 
-    def test_draft_from_multi_env(self, spec_v1):
+    def test_draft_from_multi_env(self, spec_v1) -> None:
         """Test draft method with multiple from_env."""
         v1 = "1.0"
 
@@ -197,7 +216,10 @@ class TestEnvers:
 
         assert expected_data == result_data
 
-    def test_deploy(self):
+        rmdir(Path("folder1"))
+        rmdir(Path("folder2"))
+
+    def test_deploy(self) -> None:
         """Test draft method."""
         spec_version = "1.0"
         password = "Envers everywhere!"
@@ -213,7 +235,7 @@ class TestEnvers:
         assert data_dir.exists()
         assert (data_dir / f"{profile}.lock").exists()
 
-    def test_profile_load(self, spec_v1):
+    def test_profile_load(self, spec_v1) -> None:
         """Test draft method."""
         spec_version = "1.0"
         password = "Envers everywhere!"

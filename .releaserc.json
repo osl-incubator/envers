@@ -3,9 +3,11 @@
   "tagFormat": "${version}",
   "plugins": [
     [
-      "@semantic-release/commit-analyzer", {
+      "@semantic-release/commit-analyzer",
+      {
         "preset": "conventionalcommits"
-    }],
+      }
+    ],
     [
       "semantic-release-replace-plugin",
       {
@@ -54,7 +56,6 @@
       {
         "prepareCmd": "poetry build",
         "publishCmd": "poetry publish"
-
       }
     ],
     [
