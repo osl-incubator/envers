@@ -118,7 +118,6 @@ for version `1.0`.
 
 ## Roadmap
 
-- Integration with Ansible Vault for encryption.
 - Detailed spec and content management functionalities.
 - Enhancements in versioning and group management.
 - Integration with makim and sugar.
