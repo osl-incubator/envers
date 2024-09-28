@@ -21,7 +21,23 @@
          <lastmod>2024-09-28</lastmod>
     </url>
     <url>
-         <loc>https://osl-incubator.github.io/envers/api/references/</loc>
+         <loc>https://osl-incubator.github.io/envers/api/SUMMARY/</loc>
+         <lastmod>2024-09-28</lastmod>
+    </url>
+    <url>
+         <loc>https://osl-incubator.github.io/envers/api/envers/</loc>
+         <lastmod>2024-09-28</lastmod>
+    </url>
+    <url>
+         <loc>https://osl-incubator.github.io/envers/api/envers/cli/</loc>
+         <lastmod>2024-09-28</lastmod>
+    </url>
+    <url>
+         <loc>https://osl-incubator.github.io/envers/api/envers/core/</loc>
+         <lastmod>2024-09-28</lastmod>
+    </url>
+    <url>
+         <loc>https://osl-incubator.github.io/envers/api/envers/crypt/</loc>
          <lastmod>2024-09-28</lastmod>
     </url>
 </urlset>
