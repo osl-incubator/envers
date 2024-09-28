@@ -1,6 +1,13 @@
 # Release Notes
 ---
 
+## [0.4.1](https://github.com/osl-incubator/envers/compare/0.4.0...0.4.1) (2024-09-28)
+
+
+### Bug Fixes
+
+* Update project structure and configuration ([#20](https://github.com/osl-incubator/envers/issues/20)) ([2a85543](https://github.com/osl-incubator/envers/commit/2a85543f09923d273bde7627a208e87d25c326e3))
+
 # [0.4.0](https://github.com/osl-incubator/envers/compare/0.3.0...0.4.0) (2023-12-23)
 
 
