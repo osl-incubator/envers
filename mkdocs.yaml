@@ -36,7 +36,8 @@ theme:
   # custom_dir: docs/overrides
 plugins:
   - search
-  - macros
+  - macros:
+      module_name: docs/main
   - autorefs
   # - exclude:
   #     glob:
@@ -135,5 +136,3 @@ extra:
     unsupported:
       icon: :material-cancel:{ .cancel }
       description: Unlikely to ever be supported or no upstream support.
-
-copyright: "Copyright &copy; 2022, Envers Team"
