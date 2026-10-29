@@ -9,6 +9,8 @@ site_dir: ./build
 nav:
   - index.md
   - Installation: installation.md
+  - Project assessment: project-assessment.md
+  - Roadmap: roadmap.md
   - Changelog: changelog.md
   - Contributing: contributing.md
   # from gen-files

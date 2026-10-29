@@ -50,7 +50,7 @@ def merge_dicts(
             if isinstance(dict_lhs[key], dict) and isinstance(
                 dict_rhs[key], dict
             ):
-                merge_dicts(dict_lhs[key], dict_rhs[key])
+                dict_lhs[key] = merge_dicts(dict_lhs[key], dict_rhs[key])
             else:
                 dict_lhs[key] = dict_rhs[key]
         else:
@@ -92,7 +92,8 @@ class Envers:
                 raise_error("The given password is not correct. Try it again.")
             except Exception:
                 raise_error(
-                    "The data.lock is not valid. Please remove it to proceed."
+                    "The data.lock is not valid. Restore a valid backup "
+                    "before proceeding."
                 )
 
         return data_lock
@@ -169,11 +170,11 @@ class Envers:
         if not specs.get("releases", {}):
             specs["releases"] = {}
 
-        if specs.get("releases", {}).get("version", ""):
-            # warning
-            typer.echo(
-                f"The given version {version} is already defined in the "
-                "specs.yaml file."
+        existing_release = specs["releases"].get(version, {})
+        if existing_release and existing_release.get("status") != "draft":
+            raise_error(
+                f"Version {version} is not a draft and cannot be modified. "
+                "Create a new version with --from-spec instead."
             )
 
         if not specs["releases"].get(version, {}):
@@ -192,8 +193,9 @@ class Envers:
 
             specs["releases"][version] = merge_dicts(
                 specs["releases"][from_spec],
-                specs["releases"][version],
+                existing_release,
             )
+            specs["releases"][version]["status"] = "draft"
 
         elif from_env:
             env_path = Path(from_env)
@@ -224,7 +226,10 @@ class Envers:
         self, profile: str, spec: str, password: Optional[str] = None
     ) -> None:
         """
-        Deploy a specific version, updating the .envers/data.lock file.
+        Deploy a new release to .envers/data/<profile>.lock.
+
+        Existing releases in that profile are preserved. Use profile_set to
+        change values, or draft a new version to change the schema.
 
         Parameters
         ----------
@@ -253,6 +258,14 @@ class Envers:
 
         spec_data = copy.deepcopy(specs["releases"][spec])
 
+        if not profile or profile not in spec_data.get("profiles", []):
+            raise_error(
+                f"Profile '{profile}' is not defined for version {spec}."
+            )
+
+        if spec_data.get("status") not in ("draft", "deployed"):
+            raise_error(f"Version {spec} is not available for deployment.")
+
         # all data in the data.lock file are deployed
         del spec_data["status"]
 
@@ -262,12 +275,21 @@ class Envers:
 
             data_lock = self._read_data_file(profile, password)
 
-            if not data_lock:
-                typer.echo("data.lock is not valid. Creating a new file.")
-                data_lock = {
-                    "version": spec_data["version"],
-                    "releases": {},
-                }
+            if not data_lock or not isinstance(
+                data_lock.get("releases"), dict
+            ):
+                raise_error(
+                    "The data.lock is not valid. Restore a valid backup "
+                    "before proceeding."
+                )
+
+            if spec in data_lock["releases"]:
+                raise_error(
+                    f"Version {spec} is already deployed for profile "
+                    f"'{profile}'. Use profile-set to update values, or "
+                    "draft a new version to change the spec."
+                )
+
             data_lock["releases"][spec] = {"spec": spec_data, "data": {}}
         else:
             data_lock = {
