@@ -118,9 +118,21 @@ for version `1.0`.
 
 ## Roadmap
 
-- Detailed spec and content management functionalities.
-- Enhancements in versioning and group management.
-- Integration with makim and sugar.
+See the [project assessment](docs/project-assessment.md) and
+[development roadmap](docs/roadmap.md) for the proposed direction, alternatives,
+release gates, and staged integration with Containers Sugar.
+
+Release schemas become read-only to draft commands after deployment. Deploying
+the same version to the same profile again fails without resetting saved values.
+Use `envers profile-set --profile base --spec 1.0` to update values, or
+`envers draft 2.0 --from-spec 1.0` to start a new schema version. A shared
+release can still be deployed to another profile declared in its schema.
+
+Envers is in early development. In particular, `draft --from-env` currently
+copies values into the plaintext spec as defaults. Use only non-secret example
+files with that command. Generated environment files are plaintext; the roadmap
+tracks secret import, output handling, validation, and persistence work required
+before recommending production-secret use.
 
 ## Contributing
 
