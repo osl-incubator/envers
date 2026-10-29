@@ -153,7 +153,8 @@ class Envers:
         from_spec : str, optional
             The version number from which to copy the spec.
         from_env : str, optional
-            The .env file from which to load environment variables.
+            The .env file from which to import variable names. Values are not
+            copied into the spec.
 
         Returns
         -------
@@ -202,22 +203,14 @@ class Envers:
             if not env_path.exists():
                 raise_error(f".env file {from_env} not found.")
 
-            # Read .env file and populate variables
-            env_vars = dotenv_values(env_path)
-            file_spec = {
-                "docs": "",
-                "type": "dotenv",
-                "vars": {
-                    var: {
-                        "docs": "",
-                        "type": "string",
-                        "default": value,
-                    }
-                    for var, value in env_vars.items()
-                },
-            }
+            env_vars = dotenv_values(env_path, interpolate=False)
             spec_files = specs["releases"][version]["spec"]["files"]
-            spec_files[from_env] = file_spec
+            file_spec = spec_files.setdefault(
+                from_env, {"docs": "", "type": "dotenv", "vars": {}}
+            )
+            variables = file_spec.setdefault("vars", {})
+            for var in env_vars:
+                variables.setdefault(var, {"docs": "", "type": "string"})
 
         with open(spec_file, "w") as file:
             yaml.dump(specs, file, sort_keys=False)

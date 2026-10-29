@@ -12,7 +12,9 @@ from typing import Any
 import pytest
 import yaml
 
+from envers.cli import app
 from envers.core import Envers
+from typer.testing import CliRunner
 
 
 def rmdir(directory: Path) -> None:
@@ -125,25 +127,63 @@ class TestEnvers:
 
         assert expected_data == result_data
 
-    def test_draft_from_env(self, spec_v1) -> None:
-        """Test draft method with from_env."""
+    def test_draft_from_env(self, spec_v1, monkeypatch) -> None:
+        """Import names without exposing literal or interpolated values."""
         v1 = "1.0"
+        monkeypatch.setenv("ENVERS_IMPORT_TEST_VALUE", "synthetic-host-secret")
 
         with open(".env", "w") as f:
-            f.write("var=hello")
+            f.write(
+                "var=synthetic-file-secret\n"
+                "REFERENCE=${ENVERS_IMPORT_TEST_VALUE}\n"
+            )
 
-        self.envers.draft(v1, from_env=".env")
+        result = CliRunner().invoke(app, ["draft", v1, "--from-env", ".env"])
 
+        variables = spec_v1["spec"]["files"][".env"]["vars"]
+        del variables["var"]["default"]
+        variables["REFERENCE"] = {"docs": "", "type": "string"}
         expected_data = {"version": "0.1", "releases": {v1: spec_v1}}
 
         with open(".envers/specs.yaml", "r") as f:
-            result_data = yaml.safe_load(f)
+            spec_content = f.read()
+            result_data = yaml.safe_load(spec_content)
 
+        assert result.exit_code == 0
         assert expected_data == result_data
+        for value in (
+            "synthetic-file-secret",
+            "synthetic-host-secret",
+            "${ENVERS_IMPORT_TEST_VALUE}",
+        ):
+            assert value not in spec_content
+            assert value not in result.output
+
+    def test_draft_from_env_preserves_definitions(self, spec_v1) -> None:
+        """Discover new names without replacing existing schema metadata."""
+        file_spec = spec_v1["spec"]["files"][".env"]
+        file_spec["docs"] = "Application settings"
+        file_spec["vars"]["var"] = {
+            "docs": "Public retry count",
+            "type": "int",
+            "default": 3,
+        }
+        file_spec["vars"]["SCHEMA_ONLY"] = {"type": "bool"}
+        with open(".envers/specs.yaml", "w") as f:
+            yaml.safe_dump({"version": "0.1", "releases": {"1.0": spec_v1}}, f)
+        Path(".env").write_text("var=999\nNEW=synthetic-secret\n")
+
+        self.envers.draft("1.0", from_env=".env")
+
+        file_spec["vars"]["NEW"] = {"docs": "", "type": "string"}
+        result = yaml.safe_load(Path(".envers/specs.yaml").read_text())
+        assert result == {"version": "0.1", "releases": {"1.0": spec_v1}}
 
     def test_draft_from_multi_env(self, spec_v1) -> None:
         """Test draft method with multiple from_env."""
         v1 = "1.0"
+
+        del spec_v1["spec"]["files"][".env"]["vars"]["var"]["default"]
 
         env_path_0 = ".env"
         env_path_1 = "folder1/.env"
@@ -187,7 +227,6 @@ class TestEnvers:
                 "var1": {
                     "docs": "",
                     "type": "string",
-                    "default": "hello1",
                 }
             },
         }
@@ -209,7 +248,6 @@ class TestEnvers:
                 "var2": {
                     "docs": "",
                     "type": "string",
-                    "default": "hello2",
                 }
             },
         }
