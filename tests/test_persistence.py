@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 from envers import crypt
 from envers.core import Envers
@@ -17,6 +18,7 @@ PASSWORD = "synthetic storage password"
 LOCK_PATH = Path(".envers/data/base.lock")
 OLD_DATA = {"token": "synthetic-old-token"}
 NEW_DATA = {"token": "synthetic-new-token"}
+SPEC_PATH = Path(".envers/specs.yaml")
 
 
 @pytest.fixture
@@ -79,3 +81,53 @@ def test_save_replaces_profile_with_private_encrypted_data(
     assert list(LOCK_PATH.parent.iterdir()) == [LOCK_PATH]
     if os.name == "posix":
         assert stat.S_IMODE(LOCK_PATH.stat().st_mode) == 0o600
+
+
+@pytest.mark.parametrize("failure", ["serialize", "replace"])
+def test_failed_draft_preserves_spec(
+    project: Envers, monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    """Failed schema saves must preserve existing releases and clean up."""
+    project.init(Path("."))
+    project.draft("1.0")
+    before = SPEC_PATH.read_bytes()
+
+    def fail_save(*args: Any, **kwargs: Any) -> None:
+        raise OSError("synthetic spec failure")
+
+    if failure == "serialize":
+        monkeypatch.setattr(yaml, "dump", fail_save)
+    else:
+        monkeypatch.setattr(os, "replace", fail_save)
+
+    with pytest.raises(OSError, match="synthetic spec failure"):
+        project.draft("2.0")
+
+    assert SPEC_PATH.read_bytes() == before
+    assert set(SPEC_PATH.parent.iterdir()) == {SPEC_PATH, LOCK_PATH.parent}
+
+
+def test_failed_deployment_spec_save_keeps_both_files_readable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A spec replacement error must leave both stored files readable."""
+    monkeypatch.chdir(tmp_path)
+    project = Envers()
+    project.init(Path("."))
+    project.draft("1.0")
+    before = SPEC_PATH.read_bytes()
+    replace = os.replace
+
+    def fail_spec_replace(source: Any, destination: Any) -> None:
+        if Path(destination) == SPEC_PATH:
+            raise OSError("synthetic spec failure")
+        replace(source, destination)
+
+    monkeypatch.setattr(os, "replace", fail_spec_replace)
+    with pytest.raises(OSError, match="synthetic spec failure"):
+        project.deploy("base", "1.0", PASSWORD)
+
+    assert SPEC_PATH.read_bytes() == before
+    assert "1.0" in project._read_data_file("base", PASSWORD)["releases"]
+    assert set(SPEC_PATH.parent.iterdir()) == {SPEC_PATH, LOCK_PATH.parent}
+    assert list(LOCK_PATH.parent.iterdir()) == [LOCK_PATH]

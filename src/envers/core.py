@@ -75,6 +75,28 @@ def unescape_template_tag(v: str) -> str:
     return v.replace(r"\{\{", "{{").replace(r"\}\}", "}}")
 
 
+def _atomic_write(path: Path, content: str) -> None:
+    """Replace a file with fully written content using a private sibling."""
+    temporary_path: Optional[Path] = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as file:
+            temporary_path = Path(file.name)
+            file.write(content)
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(temporary_path, path)
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
 class Envers:
     """EnversBase defined the base structure for the Envers classes."""
 
@@ -108,25 +130,7 @@ class Envers:
         data_content = yaml.dump(data, sort_keys=False)
         encrypted_data = crypt.encrypt_data(data_content, password)
         os.makedirs(data_file.parent, exist_ok=True)
-
-        temporary_path: Optional[Path] = None
-        try:
-            with tempfile.NamedTemporaryFile(
-                mode="w",
-                encoding="utf-8",
-                dir=data_file.parent,
-                prefix=f".{data_file.name}.",
-                suffix=".tmp",
-                delete=False,
-            ) as file:
-                temporary_path = Path(file.name)
-                file.write(encrypted_data)
-                file.flush()
-                os.fsync(file.fileno())
-            os.replace(temporary_path, data_file)
-        finally:
-            if temporary_path is not None:
-                temporary_path.unlink(missing_ok=True)
+        _atomic_write(data_file, encrypted_data)
 
     def init(self, path: Path) -> None:
         """
@@ -156,8 +160,7 @@ class Envers:
             return
 
         # Create and write the default content to spec.yaml
-        with open(spec_file, "w") as file:
-            file.write("version: '0.1'\nreleases:\n")
+        _atomic_write(spec_file, "version: '0.1'\nreleases:\n")
 
     def draft(
         self, version: str, from_spec: str = "", from_env: str = ""
@@ -231,8 +234,7 @@ class Envers:
             for var in env_vars:
                 variables.setdefault(var, {"docs": "", "type": "string"})
 
-        with open(spec_file, "w") as file:
-            yaml.dump(specs, file, sort_keys=False)
+        _atomic_write(spec_file, yaml.dump(specs, sort_keys=False))
 
     def deploy(
         self, profile: str, spec: str, password: Optional[str] = None
@@ -339,11 +341,11 @@ class Envers:
                 profile_data["files"][file_path] = file_data
             data_lock["releases"][spec]["data"][profile_name] = profile_data
 
-        self._write_data_file(profile, data_lock, password)
+        specs["releases"][spec]["status"] = "deployed"
+        spec_content = yaml.dump(specs, sort_keys=False)
 
-        with open(specs_file, "w") as file:
-            specs["releases"][spec]["status"] = "deployed"
-            yaml.dump(specs, file, sort_keys=False)
+        self._write_data_file(profile, data_lock, password)
+        _atomic_write(specs_file, spec_content)
 
     def profile_set(
         self, profile: str, spec: str, password: Optional[str] = None
