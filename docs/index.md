@@ -128,11 +128,14 @@ Use `envers profile-set --profile base --spec 1.0` to update values, or
 `envers draft 2.0 --from-spec 1.0` to start a new schema version. A shared
 release can still be deployed to another profile declared in its schema.
 
-Envers is in early development. In particular, `draft --from-env` currently
-copies values into the plaintext spec as defaults. Use only non-secret example
-files with that command. Generated environment files are plaintext; the roadmap
-tracks secret import, output handling, validation, and persistence work required
-before recommending production-secret use.
+`draft --from-env .env` imports variable names with string type placeholders; it
+does not copy values into the spec or encrypted profiles. Re-importing adds
+missing variables and preserves existing definitions. Defaults remain plaintext:
+use only non-secret defaults, and review values imported by older versions.
+
+Envers is in early development. Generated environment files are plaintext; the
+roadmap tracks encrypted value import, output handling, validation, and
+persistence work required before recommending production-secret use.
 
 ## Contributing
 

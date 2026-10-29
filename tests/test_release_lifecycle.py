@@ -29,6 +29,9 @@ def project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Envers:
     project.draft("1.0", from_env=".env")
     specs = yaml.safe_load(SPEC_PATH.read_text())
     specs["releases"]["1.0"]["profiles"] = ["base", "prod"]
+    variables = specs["releases"]["1.0"]["spec"]["files"][".env"]["vars"]
+    variables["ENV"]["default"] = "dev"
+    variables["SHARED"]["default"] = "example"
     SPEC_PATH.write_text(yaml.safe_dump(specs))
     return project
 
@@ -77,6 +80,10 @@ def test_draft_from_deployed_spec_preserves_overrides(project: Envers) -> None:
     source = yaml.safe_load(SPEC_PATH.read_text())["releases"]["1.0"]
     Path(".env").write_text("ENV=override\nEXTRA=example\n")
     project.draft("2.0", from_env=".env")
+    specs = yaml.safe_load(SPEC_PATH.read_text())
+    variables = specs["releases"]["2.0"]["spec"]["files"][".env"]["vars"]
+    variables["ENV"]["default"] = "override"
+    SPEC_PATH.write_text(yaml.safe_dump(specs))
     project.draft("2.0", from_spec="1.0")
 
     releases = yaml.safe_load(SPEC_PATH.read_text())["releases"]
