@@ -6,6 +6,7 @@ import copy
 import io
 import os
 import shutil
+import tempfile
 
 from pathlib import Path
 from typing import Any, Optional
@@ -104,11 +105,28 @@ class Envers:
     ) -> None:
         data_file = Path(".envers") / "data" / f"{profile}.lock"
 
+        data_content = yaml.dump(data, sort_keys=False)
+        encrypted_data = crypt.encrypt_data(data_content, password)
         os.makedirs(data_file.parent, exist_ok=True)
 
-        with open(data_file, "w") as file:
-            data_content = yaml.dump(data, sort_keys=False)
-            file.write(crypt.encrypt_data(data_content, password))
+        temporary_path: Optional[Path] = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=data_file.parent,
+                prefix=f".{data_file.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as file:
+                temporary_path = Path(file.name)
+                file.write(encrypted_data)
+                file.flush()
+                os.fsync(file.fileno())
+            os.replace(temporary_path, data_file)
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
 
     def init(self, path: Path) -> None:
         """

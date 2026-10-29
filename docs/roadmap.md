@@ -24,8 +24,11 @@ open work.
       defaults; provide an explicit encrypted value-import operation.
 - [ ] Preserve literal imported values, hide secret prompts, reject empty
       credentials/EOF, and document unattended credential input.
-- [ ] Serialize/encrypt before writes; add atomic replacement, private output
-      permissions, concurrency control and recovery for lock/spec updates.
+- [x] Serialize/encrypt profiles before writes; replace profile locks atomically
+      using private temporary files (owner-only permissions on POSIX).
+- [ ] Add atomic spec writes, concurrency control and recovery across lock/spec
+      updates. Profile replacement alone does not provide these guarantees or
+      power-loss durability.
 - [ ] Validate profile/output paths against an explicit root, including symlinks
       and collisions with project metadata.
 - [ ] Compare a small SOPS storage prototype with keeping native Fernet storage.
