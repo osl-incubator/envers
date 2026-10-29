@@ -128,6 +128,9 @@ Use `envers profile-set --profile base --spec 1.0` to update values, or
 `envers draft 2.0 --from-spec 1.0` to start a new schema version. A shared
 release can still be deployed to another profile declared in its schema.
 
+`profile-set` hides entered and saved values. Press Enter to keep a value;
+Ctrl+C cancels the edit without saving any changes.
+
 `draft --from-env .env` imports variable names with string type placeholders; it
 does not copy values into the spec or encrypted profiles. Re-importing adds
 missing variables and preserves existing definitions. Defaults remain plaintext:

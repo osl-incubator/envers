@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import io
 import os
+import shutil
 
 from pathlib import Path
 from typing import Any, Optional
@@ -370,7 +371,7 @@ class Envers:
             )
 
         # Iterate over files and variables
-        size = os.get_terminal_size()
+        size = shutil.get_terminal_size()
 
         profile_title = f" Profile: {profile} ".center(size.columns, "=")
         typer.echo(f"\n{profile_title}\n")
@@ -378,16 +379,18 @@ class Envers:
         for file_path, file_info in profile_data.get("files", {}).items():
             file_title = f">>> File: {file_path} "
             typer.echo(f"{file_title}\n")
-            for var_name, var_info in file_info.get("vars", {}).items():
-                current_value = var_info
+            for var_name in file_info.get("vars", {}):
                 new_value = typer.prompt(
-                    f"Enter value for `{var_name}`",
-                    default=current_value,
+                    f"Enter value for `{var_name}` (Enter to keep current)",
+                    default="",
+                    show_default=False,
+                    hide_input=True,
                 )
-                profile_data["files"][file_path]["vars"][var_name] = new_value
+                if new_value:
+                    file_info["vars"][var_name] = new_value
 
             # update the size for each iteration
-            size = os.get_terminal_size()
+            size = shutil.get_terminal_size()
             typer.echo(f"\n{size.columns * '-'}\n")
 
         # Update data.lock file
