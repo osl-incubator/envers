@@ -119,7 +119,7 @@ def test_failed_deployment_spec_save_keeps_both_files_readable(
     replace = os.replace
 
     def fail_spec_replace(source: Any, destination: Any) -> None:
-        if Path(destination) == SPEC_PATH:
+        if Path(destination) == SPEC_PATH.resolve():
             raise OSError("synthetic spec failure")
         replace(source, destination)
 

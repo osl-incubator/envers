@@ -9,7 +9,7 @@ import re
 import shutil
 import tempfile
 
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, NoReturn, Optional
 
 import typer
@@ -116,14 +116,94 @@ def _render_dotenv(variables: dict[str, Any]) -> str:
     return "".join(lines)
 
 
+def _checked_path(root: Path, relative: Path) -> Path:
+    """Keep project paths inside their root without following symlinks."""
+    path = root / relative
+    try:
+        resolved = path.resolve()
+    except (OSError, RuntimeError):
+        raise_error("Cannot resolve project path safely.")
+    if not resolved.is_relative_to(root):
+        raise_error("Project paths must stay within the project root.")
+    if resolved != path:
+        raise_error("Project paths must not contain redirected components.")
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise_error("Project paths must not contain symlinks.")
+        if current != path and current.exists() and not current.is_dir():
+            raise_error("A project path parent is not a directory.")
+    return path
+
+
 class Envers:
     """EnversBase defined the base structure for the Envers classes."""
+
+    def __init__(self, root: Optional[Path] = None) -> None:
+        """Anchor operations to an explicit root or the current directory."""
+        self.root = (Path.cwd() if root is None else Path(root)).resolve()
+
+    def _metadata_path(
+        self, relative: str, root: Optional[Path] = None
+    ) -> Path:
+        path = _checked_path(
+            self.root if root is None else root, Path(".envers") / relative
+        )
+        if path.is_dir():
+            raise_error("A metadata file path points to a directory.")
+        return path
+
+    def _profile_path(self, profile: str) -> Path:
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", profile) or (
+            PureWindowsPath(f"{profile}.lock").is_reserved()
+        ):
+            raise_error(
+                "Profile names must start with a letter or digit and contain "
+                "only letters, digits, underscores, dots or hyphens. "
+                "Reserved device names are not allowed."
+            )
+        return self._metadata_path(f"data/{profile}.lock")
+
+    def _output_paths(self, files: dict[str, Any]) -> dict[str, Path]:
+        paths: dict[str, Path] = {}
+        for name in files:
+            relative = PureWindowsPath(name)
+            if (
+                not relative.parts
+                or relative.drive
+                or relative.root
+                or any(
+                    part == ".."
+                    or ":" in part
+                    or part.endswith((".", " "))
+                    or PureWindowsPath(part).is_reserved()
+                    for part in relative.parts
+                )
+            ):
+                raise_error("Output files must use safe relative paths.")
+            if relative.parts[0].lower() in (".envers", ".git"):
+                raise_error(
+                    "Output files must not overwrite project metadata."
+                )
+            path = _checked_path(self.root, Path(*relative.parts))
+            if path.exists() and not path.is_file():
+                raise_error("An output file path is not a regular file.")
+            if any(
+                relative == other
+                or relative in other.parents
+                or other in relative.parents
+                for other in map(PureWindowsPath, paths)
+            ):
+                raise_error("Output file paths conflict with each other.")
+            paths[name] = path
+        return paths
 
     def _read_data_file(
         self, profile: str, password: str = ""
     ) -> dict[str, Any]:
         crypt.validate_password(password)
-        data_file = Path(".envers") / "data" / f"{profile}.lock"
+        data_file = self._profile_path(profile)
 
         with open(data_file, "r") as file:
             try:
@@ -145,7 +225,7 @@ class Envers:
     def _write_data_file(
         self, profile: str, data: dict[str, Any], password: str = ""
     ) -> None:
-        data_file = Path(".envers") / "data" / f"{profile}.lock"
+        data_file = self._profile_path(profile)
 
         data_content = yaml.dump(data, sort_keys=False)
         encrypted_data = crypt.encrypt_data(data_content, password)
@@ -170,11 +250,11 @@ class Envers:
         -------
         None
         """
-        envers_path = path / ".envers"
-        spec_file = envers_path / ENVERS_SPEC_FILENAME
+        root = (self.root / path).resolve()
+        spec_file = self._metadata_path(ENVERS_SPEC_FILENAME, root)
 
         # Create .envers directory if it doesn't exist
-        os.makedirs(envers_path, exist_ok=True)
+        os.makedirs(spec_file.parent, exist_ok=True)
 
         if spec_file.exists():
             return
@@ -202,7 +282,7 @@ class Envers:
         -------
         None
         """
-        spec_file = Path(".envers") / ENVERS_SPEC_FILENAME
+        spec_file = self._metadata_path(ENVERS_SPEC_FILENAME)
 
         if not spec_file.exists():
             raise_error("Spec file not found. Please initialize envers first.")
@@ -241,7 +321,7 @@ class Envers:
             specs["releases"][version]["status"] = "draft"
 
         elif from_env:
-            env_path = Path(from_env)
+            env_path = self._output_paths({from_env: {}})[from_env]
             if not env_path.exists():
                 raise_error(f".env file {from_env} not found.")
 
@@ -254,6 +334,7 @@ class Envers:
             for var in env_vars:
                 variables.setdefault(var, {"docs": "", "type": "string"})
 
+        self._output_paths(specs["releases"][version]["spec"]["files"])
         _atomic_write(spec_file, yaml.dump(specs, sort_keys=False))
 
     def deploy(
@@ -278,8 +359,8 @@ class Envers:
         -------
         None
         """
-        specs_file = Path(".envers") / ENVERS_SPEC_FILENAME
-        data_file = Path(".envers") / "data" / f"{profile}.lock"
+        specs_file = self._metadata_path(ENVERS_SPEC_FILENAME)
+        data_file = self._profile_path(profile)
 
         if not specs_file.exists():
             raise_error("Spec file not found. Please initialize envers first.")
@@ -291,6 +372,7 @@ class Envers:
             raise_error(f"Version {spec} not found in specs.yaml.")
 
         spec_data = copy.deepcopy(specs["releases"][spec])
+        self._output_paths(spec_data.get("spec", {}).get("files", {}))
 
         if not profile or profile not in spec_data.get("profiles", []):
             raise_error(
@@ -386,7 +468,7 @@ class Envers:
         -------
         None
         """
-        data_file = Path(".envers") / "data" / f"{profile}.lock"
+        data_file = self._profile_path(profile)
 
         if not data_file.exists():
             raise_error(
@@ -446,7 +528,7 @@ class Envers:
         password: Optional[str] = None,
     ) -> None:
         """Import literal dotenv values into one deployed profile file."""
-        data_file = Path(".envers") / "data" / f"{profile}.lock"
+        data_file = self._profile_path(profile)
         if not data_file.exists():
             raise_error(
                 "Data lock file not found. Please deploy a version first."
@@ -464,7 +546,7 @@ class Envers:
 
         values: dict[str, str] = {}
         try:
-            with open(from_env, encoding="utf-8") as file:
+            with open(self.root / from_env, encoding="utf-8") as file:
                 for binding in parse_stream(file):
                     if binding.error:
                         raise_error(
@@ -512,7 +594,7 @@ class Envers:
         -------
         None
         """
-        data_file = Path(".envers") / "data" / f"{profile}.lock"
+        data_file = self._profile_path(profile)
 
         if not data_file.exists():
             raise_error(
@@ -530,14 +612,17 @@ class Envers:
         release_data = data_lock["releases"][spec]
         profile_data = release_data.get("data", {}).get(profile, {"files": {}})
 
+        files = profile_data.get("files", {})
+        paths = self._output_paths(files)
         output_files = {}
-        for file_path, file_info in profile_data.get("files", {}).items():
+        for file_path, file_info in files.items():
             if file_info.get("type", "dotenv") != "dotenv":
                 raise_error("Only dotenv files can be exported.")
-            output_files[Path(file_path)] = _render_dotenv(
+            output_files[paths[file_path]] = _render_dotenv(
                 file_info.get("vars", {})
             )
         for path, content in output_files.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
             _atomic_write(path, content)
 
         typer.echo(
