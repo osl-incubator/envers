@@ -10,18 +10,25 @@ context.
 
 ## Working principles
 
-- Make the smallest complete change that solves the stated problem.
+- Group related tasks into one focused PR that completes a useful workflow;
+  avoid a separate PR for each small internal step.
 - Prefer direct code over new frameworks, provider abstractions or speculative
   extension points. Refactor only where it helps the current change.
 - Envers is pre-stable and not production-ready. Breaking changes are
   acceptable; do not add compatibility aliases, migrations or deprecated paths
   unless asked or needed by an explicitly supported workflow. Describe changed
-  behavior.
+  behavior in the PR.
 - Add tests for meaningful behavior changes and regressions. Do not test every
   permutation, mirror implementation details or add tests for documentation
   edits.
-- Update only documentation affected by the change. Keep it factual and concise;
-  avoid duplicate reports, generic checklists and promises of unbuilt features.
+- Documentation changes are not required for every code change. Leave guides
+  alone for routine fixes and internal changes; use CLI help and the PR
+  description. Change documentation only when users need new instructions or
+  existing instructions become materially wrong. Keep one concise explanation,
+  and remove redundant documentation instead of repeatedly maintaining copies.
+- Treat the roadmap as a bounded plan. Do not add follow-up tasks, split items
+  or expand scope after each change. Do not edit it routinely in every PR;
+  revise it only for an agreed milestone review or explicit user request.
 - Keep unrelated cleanup, dependency upgrades and generated files out of a PR.
 
 ## Code and files
@@ -31,8 +38,8 @@ context.
 - `src/envers/crypt.py`: password input and encryption through `cryptography`.
 - `tests/`: pytest tests; `.makim.yaml` also defines CLI smoke tests.
 - `pyproject.toml` / `poetry.lock`: dependencies and tool configuration.
-- `README.md` / `docs/index.md`: mirrored overview; keep affected text
-  consistent.
+- `README.md` / `docs/index.md`: user guides; routine code changes do not
+  require edits to either file.
 - `mkdocs.yaml`: documentation navigation and build configuration.
 
 Preserve stored data on rejected operations. Never commit real secrets, put them
