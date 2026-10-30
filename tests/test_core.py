@@ -297,4 +297,4 @@ class TestEnvers:
         with open(dotenv_path, "r") as f:
             dotenv_content = f.read()
 
-        assert dotenv_content == "var=hello\n"
+        assert dotenv_content == 'var="hello"\n'

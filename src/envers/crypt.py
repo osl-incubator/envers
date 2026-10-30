@@ -36,11 +36,26 @@ def get_password(message: str = "") -> str:
     if sys.stdin.isatty():
         # Interactive mode: Use Typer's prompt
         message = "Enter your password" if not message else message
-        password = cast(str, typer.prompt(message, hide_input=True))
+        password = cast(
+            str,
+            typer.prompt(
+                message, hide_input=True, default="", show_default=False
+            ),
+        )
     else:
         # Non-interactive mode: Read from stdin
-        password = sys.stdin.readline().rstrip()
+        line = sys.stdin.readline()
+        if not line:
+            raise typer.BadParameter("No password received on stdin.")
+        password = line.rstrip("\r\n")
+    validate_password(password)
     return password
+
+
+def validate_password(password: str) -> None:
+    """Reject an empty credential without displaying it."""
+    if not password:
+        raise typer.BadParameter("Password cannot be empty.")
 
 
 def generate_salt() -> bytes:
@@ -52,6 +67,7 @@ def encrypt_data(data: str, password: Optional[str] = None) -> str:
     """Encrypt the given data."""
     if password is None:
         password = get_password()
+    validate_password(password)
 
     salt = generate_salt()
     salt_hex = salt.hex()
@@ -66,6 +82,7 @@ def decrypt_data(data: str, password: Optional[str] = None) -> str:
     """Decrypt the given data."""
     if password is None:
         password = get_password()
+    validate_password(password)
 
     HEX_SALT_LENGTH = SALT_LENGTH * 2
 

@@ -20,9 +20,9 @@ open work.
 
 ## 2. Fix secret handling and persistence
 
-- [ ] Import schema names/metadata without copying secret values into public
-      defaults; provide an explicit encrypted value-import operation.
-- [ ] Preserve literal imported values, hide secret prompts, reject empty
+- [x] Import schema names without copying secret values into public defaults;
+      import declared values explicitly into encrypted profile releases.
+- [x] Preserve literal imported values, hide secret prompts, reject empty
       credentials/EOF, and document unattended credential input.
 - [x] Serialize/encrypt profiles before writes; replace profile locks atomically
       using private temporary files (owner-only permissions on POSIX).
@@ -33,9 +33,9 @@ open work.
       guarantee power-loss durability.
 - [ ] Validate profile/output paths against an explicit root, including symlinks
       and collisions with project metadata.
-- [ ] Compare a small SOPS storage prototype with keeping native Fernet storage.
-      If retaining native storage, specify its envelope/KDF settings, password
-      rotation and recovery. Avoid a provider framework before this decision.
+- [ ] Specify native Fernet envelope/KDF settings, password rotation and
+      recovery. SOPS and additional storage backends are optional integrations
+      driven by user demand; defer a provider framework.
 - [ ] Declare the build backend and verify a clean wheel installation, declared
       dependencies and version reporting; align Python tooling.
 
@@ -54,11 +54,14 @@ credential rotation. Complete this phase before recommending production secrets.
       history/rollback.
 - [ ] Compare releases and report variables that need operator input or
       migration.
-- [ ] Implement correct literal dotenv serialization; test hashes, quotes,
-      newlines and dollar signs against python-dotenv and Compose.
+- [x] Quote literal dotenv output and test hashes, quotes, newlines, backslashes
+      and dollar signs with python-dotenv interpolation disabled.
+- [ ] Verify dotenv output with Compose, including its interpolation rules,
+      before Sugar integration.
 - [ ] Add selective file export and explicit output placement; replace the
       `profile-versions` stub with useful behavior or remove it.
-- [ ] Replace outdated usage/setup instructions with one tested walkthrough.
+- [x] Replace outdated usage instructions with one tested import/export
+      walkthrough. Clean package installation remains part of phase 2.
 
 Done when CI can validate several profiles against a pinned release without
 prompts or writes, and supported values survive rendering into their consumers.

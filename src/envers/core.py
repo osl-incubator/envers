@@ -5,22 +5,24 @@ from __future__ import annotations
 import copy
 import io
 import os
+import re
 import shutil
 import tempfile
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, NoReturn, Optional
 
 import typer
 import yaml  # type: ignore
 
 from cryptography.fernet import InvalidToken
 from dotenv import dotenv_values
+from dotenv.parser import parse_stream
 
 from envers import crypt
 
 
-def raise_error(message: str, exit_code: int = 1) -> None:
+def raise_error(message: str, exit_code: int = 1) -> NoReturn:
     """Raise an error using typer."""
     red_text = typer.style(message, fg=typer.colors.RED, bold=True)
     typer.echo(red_text, err=True, color=True)
@@ -97,12 +99,30 @@ def _atomic_write(path: Path, content: str) -> None:
             temporary_path.unlink(missing_ok=True)
 
 
+def _render_dotenv(variables: dict[str, Any]) -> str:
+    """Quote literal values for python-dotenv with interpolation disabled."""
+    lines = []
+    for name, value in variables.items():
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+            raise_error("Invalid dotenv variable name in profile.")
+        escaped = (
+            str(value)
+            .replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+        )
+        lines.append(f'{name}="{escaped}"\n')
+    return "".join(lines)
+
+
 class Envers:
     """EnversBase defined the base structure for the Envers classes."""
 
     def _read_data_file(
         self, profile: str, password: str = ""
     ) -> dict[str, Any]:
+        crypt.validate_password(password)
         data_file = Path(".envers") / "data" / f"{profile}.lock"
 
         with open(data_file, "r") as file:
@@ -417,6 +437,59 @@ class Envers:
         data_lock["releases"][spec]["data"][profile] = profile_data
         self._write_data_file(profile, data_lock, password)
 
+    def profile_import(
+        self,
+        profile: str,
+        spec: str,
+        from_env: str,
+        file_path: str = "",
+        password: Optional[str] = None,
+    ) -> None:
+        """Import literal dotenv values into one deployed profile file."""
+        data_file = Path(".envers") / "data" / f"{profile}.lock"
+        if not data_file.exists():
+            raise_error(
+                "Data lock file not found. Please deploy a version first."
+            )
+        if password is None:
+            password = crypt.get_password()
+        data_lock = self._read_data_file(profile, password)
+        release = data_lock.get("releases", {}).get(spec, {})
+        files = release.get("data", {}).get(profile, {}).get("files", {})
+        target = file_path or from_env
+        if target not in files:
+            raise_error("Target file is not declared in this profile release.")
+        if files[target].get("type", "dotenv") != "dotenv":
+            raise_error("Only dotenv files can be imported.")
+
+        values: dict[str, str] = {}
+        try:
+            with open(from_env, encoding="utf-8") as file:
+                for binding in parse_stream(file):
+                    if binding.error:
+                        raise_error(
+                            "Invalid dotenv syntax at line "
+                            f"{binding.original.line}."
+                        )
+                    if binding.key is None:
+                        continue
+                    if binding.key not in files[target].get("vars", {}):
+                        raise_error("Dotenv contains an undeclared variable.")
+                    if binding.value is None:
+                        raise_error(
+                            "Dotenv contains a variable without a value. "
+                            "Use NAME= for an empty value."
+                        )
+                    values[binding.key] = binding.value
+        except (OSError, UnicodeError):
+            raise_error("Cannot read dotenv input as UTF-8.")
+        if not values:
+            raise_error("Dotenv input contains no values.")
+
+        files[target]["vars"].update(values)
+        self._write_data_file(profile, data_lock, password)
+        typer.echo("Profile values imported.")
+
     def profile_load(
         self, profile: str, spec: str, password: Optional[str] = None
     ) -> None:
@@ -457,15 +530,15 @@ class Envers:
         release_data = data_lock["releases"][spec]
         profile_data = release_data.get("data", {}).get(profile, {"files": {}})
 
-        # Iterate over files and variables
+        output_files = {}
         for file_path, file_info in profile_data.get("files", {}).items():
-            file_content = ""
-            for var_name, var_value in file_info.get("vars", {}).items():
-                file_content += f"{var_name}={var_value}\n"
-
-            # Create or update the file
-            with open(file_path, "w") as file:
-                file.write(file_content)
+            if file_info.get("type", "dotenv") != "dotenv":
+                raise_error("Only dotenv files can be exported.")
+            output_files[Path(file_path)] = _render_dotenv(
+                file_info.get("vars", {})
+            )
+        for path, content in output_files.items():
+            _atomic_write(path, content)
 
         typer.echo(
             f"Environment files for profile '{profile}' and spec version "

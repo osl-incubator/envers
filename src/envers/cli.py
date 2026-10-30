@@ -108,6 +108,20 @@ def profile_set(
 
 
 @app.command()
+def profile_import(
+    profile: Annotated[str, Option(help="Profile to update.")],
+    spec: Annotated[str, Option(help="Deployed release version.")],
+    from_env: Annotated[Path, Option(help="Dotenv source file.")],
+    file_path: Annotated[
+        str,
+        Option("--file", help="Declared target file; defaults to --from-env."),
+    ] = "",
+) -> None:
+    """Import dotenv values into encrypted storage; keep the spec unchanged."""
+    Envers().profile_import(profile, spec, str(from_env), file_path)
+
+
+@app.command()
 def profile_load(
     profile: Annotated[
         str, typer.Option(help="The name of the profile to set values for.")
