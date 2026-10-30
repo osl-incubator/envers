@@ -1,3 +1,7 @@
+[build-system]
+requires = ["poetry-core>=1.5.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "envers"
 version = "0.4.1"  # semantic-release
@@ -100,7 +104,7 @@ convention = "numpy"
 lines-between-types = 1
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10"
 check_untyped_defs = true
 strict = true
 ignore_missing_imports = true
