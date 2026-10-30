@@ -26,9 +26,11 @@ open work.
       credentials/EOF, and document unattended credential input.
 - [x] Serialize/encrypt profiles before writes; replace profile locks atomically
       using private temporary files (owner-only permissions on POSIX).
-- [ ] Add atomic spec writes, concurrency control and recovery across lock/spec
-      updates. Profile replacement alone does not provide these guarantees or
-      power-loss durability.
+- [x] Write specs atomically during initialization, drafting and deployment,
+      using private temporary files (owner-only permissions on POSIX).
+- [ ] Add concurrency control and recovery across lock/spec updates. Atomic
+      replacement of each file does not make deployment a transaction or
+      guarantee power-loss durability.
 - [ ] Validate profile/output paths against an explicit root, including symlinks
       and collisions with project metadata.
 - [ ] Compare a small SOPS storage prototype with keeping native Fernet storage.
