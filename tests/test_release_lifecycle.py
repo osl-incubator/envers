@@ -58,7 +58,7 @@ def test_redeploy_preserves_saved_values(project: Envers) -> None:
     assert LOCK_PATH.read_bytes() == before_lock
     assert SPEC_PATH.read_bytes() == before_specs
     project.profile_load("base", "1.0", PASSWORD)
-    assert "ENV=custom value\n" in Path(".env").read_text()
+    assert 'ENV="custom value"\n' in Path(".env").read_text()
 
 
 def test_draft_cannot_modify_deployed_release(project: Envers) -> None:
