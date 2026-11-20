@@ -5,6 +5,8 @@ variables for different deployment stages such as staging, development, and
 production. It provides a secure and organized way to handle
 environment-specific configurations.
 
+Maintained by [SciStitch](https://scistitch.com) and project contributors.
+
 ## Features
 
 - Encrypt environment variables: Creates encrypted files that store environment
