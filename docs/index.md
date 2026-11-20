@@ -5,8 +5,6 @@ variables for different deployment stages such as staging, development, and
 production. It provides a secure and organized way to handle
 environment-specific configurations.
 
-Maintained by [SciStitch](https://scistitch.com) and project contributors.
-
 ## Features
 
 - Encrypt environment variables: Creates encrypted files that store environment
@@ -93,6 +91,24 @@ recovery across lock/spec updates remain open before production-secret use.
 ## Contributing
 
 https://osl-incubator.github.io/envers
+
+## Support & Acknowledgments
+
+### Help make environment management safer and more dependable
+
+Envers aims to make it easier to manage versioned environment configuration without committing sensitive values to source control. It is still a pre-stable project, and responsible progress depends on careful testing, security review, clear documentation, and input from teams with real deployment needs. Help us strengthen those foundations before broader production use.
+
+**[Contribute to Envers](https://github.com/osl-incubator/envers/issues)** by reporting edge cases, reviewing the roadmap, testing with synthetic configurations, or improving documentation. A dedicated Envers donation page has not been announced.
+
+### The people and organizations behind the work
+
+Envers is developed and maintained through [SciStitch](https://scistitch.com/), in collaboration with open-source contributors. We thank [Open Science Labs (OSL)](https://opensciencelabs.org/) for its institutional support, and everyone contributing code, reviews, issue reports, ideas, and experience as users. Your feedback helps shape a more useful and trustworthy tool.
+
+<p>
+  <a href="https://scistitch.com/"><img src="https://scistitch.com/images/logo/wordmark-color.svg" alt="SciStitch" width="160"></a>
+  &nbsp;&nbsp;
+  <a href="https://opensciencelabs.org/"><img src="https://scistitch.com/assets/osl-logo.svg" alt="Open Science Labs" width="128"></a>
+</p>
 
 ## License
 
